@@ -1,5 +1,5 @@
-# from pykinect2 import PyKinectRuntime, PyKinectV2
-# from pykinect2.PyKinectV2 import *
+from pykinect2 import PyKinectRuntime, PyKinectV2
+from pykinect2.PyKinectV2 import *
 
 
 # print list(traverse(JointHierarchy))
@@ -7,10 +7,10 @@
 
 class Kinect2(object):
 
-    JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
+    self.JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
         2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
-    def traverse(t, p=0):
+    def traverse(self, t, p=0):
         for item in t:
             if not isinstance(item, tuple):
                 yield(p, item)
@@ -19,7 +19,7 @@ class Kinect2(object):
                 for j in traverse(item, p):
                     yield j
 
-    def __init__(self, pygame):
+    def __init__(self):
         self._kinect = PyKinectRuntime.PyKinectRuntime(
             PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
         self._kinect.max_body_count = 6
