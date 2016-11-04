@@ -9,4 +9,4 @@ def read(file):
         values.append([ eval(x) for x in row])
     return values
 
-print read(file)
+def draw_frame(values):
