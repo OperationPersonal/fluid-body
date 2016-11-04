@@ -13,4 +13,4 @@ class Lesson(object):
 
   def __init__(self, lesson=None):
     self._lesson = lesson
-    # self._
+    # self._kinect =
