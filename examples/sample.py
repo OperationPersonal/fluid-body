@@ -90,7 +90,6 @@ class BodyGameRuntime(object):
     yaw = math.asin(2 * ((w * y) - (x * z))) / math.pi * 180.0
     roll = math.atan2(2 * ((x * y) + (w * z)), (w * w) +
                       (x * x) - (y * y) - (z * z)) / math.pi * 180.0
-
     return (pitch, yaw, roll)
 
   # This basically just does draw_body_bone(joints, jointPoints, color, index0, index1) on everything
@@ -240,6 +239,7 @@ class BodyGameRuntime(object):
     # Close our Kinect sensor, close the window and quit.
     self._kinect.close()
     pygame.quit()
+      return (pitch, yaw, roll)
 
 
 __main__ = "Kinect v2 Body Game"
