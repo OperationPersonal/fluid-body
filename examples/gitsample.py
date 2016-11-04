@@ -1,11 +1,11 @@
-import math
-import _ctypes
-import ctypes
-import sys
-
-import pygame
-from pykinect2 import PyKinectRuntime, PyKinectV2
+from pykinect2 import PyKinectV2
 from pykinect2.PyKinectV2 import *
+from pykinect2 import PyKinectRuntime
+
+import ctypes
+import _ctypes
+import pygame
+import sys
 
 if sys.hexversion >= 0x03000000:
     import _thread as thread
@@ -46,7 +46,7 @@ class BodyGameRuntime(object):
         # Kinect runtime object, we want only color and body frames
         self._kinect = PyKinectRuntime.PyKinectRuntime(
             PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
-        self._kinect.max_body_count = 6
+
         # back buffer surface for getting Kinect color frames, 32bit color,
         # width and height equal to the Kinect color frame size
         self._frame_surface = pygame.Surface(
@@ -77,24 +77,6 @@ class BodyGameRuntime(object):
         except:
             pass
 
-    def orientation_to_degrees(self, orientation):
-        x = orientation.x
-        y = orientation.y
-        z = orientation.z
-        w = orientation.w
-
-        pitch = yaw = roll = 0
-        pitch = math.atan2(2 * ((y * z) + (w * x)), (w * w) -
-                       (x * x) - (y * y) + (z * z)) / math.pi * 180.0
-        yaw = math.asin(2 * ((w * y) - (x * z))) / math.pi * 180.0
-        roll = math.atan2(2 * ((x * y) + (w * z)), (w * w) +
-                      (x * x) - (y * y) - (z * z)) / math.pi * 180.0
-
-        return (pitch, yaw, roll)
-
-    # This basically just does draw_body_bone(joints, jointPoints, color, index0, index1) on everything
-    # index0 and index1 are pulled from PyKinectV2's constants. check
-    # refs/JointType.png for more info
     def draw_body(self, joints, jointPoints, color):
         # Torso
         self.draw_body_bone(joints, jointPoints, color,
@@ -193,22 +175,12 @@ class BodyGameRuntime(object):
                     if not body.is_tracked:
                         continue
 
-                    # print 'hi'
                     joints = body.joints
-
-                    orientation = body.joint_orientations
-
-                    angles = self.orientation_to_degrees(orientation[PyKinectV2.JointType_ElbowRight].Orientation)
-                    pitch = angles[0]
-                    yaw = angles[1]
-                    roll = angles[2]
-                    print pitch
-
                     # convert joint coordinates to color space
                     joint_points = self._kinect.body_joints_to_color_space(
                         joints)
                     self.draw_body(joints, joint_points, SKELETON_COLORS[i])
-                    break
+                    # break
 
             # --- copy back buffer surface pixels to the screen, resize it if needed and keep aspect ratio
             # --- (screen size may be different from Kinect's color frame size)
@@ -225,7 +197,7 @@ class BodyGameRuntime(object):
             pygame.display.flip()
 
             # --- Limit to 60 frames per second
-            self._clock.tick(120)
+            self._clock.tick(60)
 
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
