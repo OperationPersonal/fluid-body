@@ -204,10 +204,9 @@ class BodyGameRuntime(object):
                     orientation = body.joint_orientations
                     jointAngles = []
                     for j in range(25):
-                        angles = self.orientation_to_degrees(
-                            orientation[j].Orientation)
-                        jointAngles.append(angles)
-                    output.write(str(jointAngles) + '\n')
+                        angles = self.orientation_to_degrees(orientation[j].Orientation)
+                        jointAngles.append(str(angles))
+                    output.write(';'.join(jointAngles) + '\n')
 
                     # convert joint coordinates to color space
                     joint_points = self._kinect.body_joints_to_color_space(
@@ -229,8 +228,8 @@ class BodyGameRuntime(object):
             # --- Go ahead and update the screen with what we've drawn.
             pygame.display.flip()
 
-            # --- Limit to 60 frames per second
-            self._clock.tick(120)
+            # --- Limit to 30 frames per second
+            self._clock.tick(30)
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
         pygame.quit()
