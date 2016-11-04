@@ -14,7 +14,7 @@ JointHierarchy = (
     ))
 )
 
-# def ?
+def traverse()
 
 if __name__ == "__main__":
     print("Started body program")

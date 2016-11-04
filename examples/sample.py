@@ -2,6 +2,8 @@ import math
 import _ctypes
 import ctypes
 import sys
+import time
+import csv
 
 import pygame
 from pykinect2 import PyKinectRuntime, PyKinectV2
@@ -26,6 +28,8 @@ class BodyGameRuntime(object):
 
     def __init__(self):
         pygame.init()
+
+        self._body = None
 
         # Used to manage how fast the screen updates
         self._clock = pygame.time.Clock()
@@ -163,10 +167,14 @@ class BodyGameRuntime(object):
 
     def run(self):
         # -------- Main Program Loop -----------
+        output = open("./data/" + str(time.time()), "wb+")
+        starttime = time.time()
+        count = 0
         while not self._done:
             # --- Main event loop
             for event in pygame.event.get():  # User did something
                 if event.type == pygame.QUIT:  # If user clicked close
+                    print count
                     self._done = True  # Flag that we are done so we exit this loop
 
                 elif event.type == pygame.VIDEORESIZE:  # window resized
@@ -193,16 +201,21 @@ class BodyGameRuntime(object):
                     if not body.is_tracked:
                         continue
 
+                    if not self._body:
+                        self._body = i
+                    if self._body != i:
+                        print 'wrong body'
+                        sys.exit()
                     # print 'hi'
                     joints = body.joints
 
                     orientation = body.joint_orientations
-
-                    angles = self.orientation_to_degrees(orientation[PyKinectV2.JointType_ElbowRight].Orientation)
-                    pitch = angles[0]
-                    yaw = angles[1]
-                    roll = angles[2]
-                    print pitch
+                    jointAngles = []
+                    for j in range(25):
+                            angles = self.orientation_to_degrees(orientation[j].Orientation)
+                            jointAngles.append(angles)
+                    count += 1
+                    output.write(str(jointAngles) + '\n')
 
                     # convert joint coordinates to color space
                     joint_points = self._kinect.body_joints_to_color_space(
@@ -226,7 +239,7 @@ class BodyGameRuntime(object):
 
             # --- Limit to 60 frames per second
             self._clock.tick(120)
-
+            time.sleep(1 / 30 - ((time.time() - starttime) % 1 / 30))
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
         pygame.quit()
