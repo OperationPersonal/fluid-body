@@ -7,16 +7,13 @@ from pykinect2.PyKinectV2 import *
 
 class Kinect2(object):
 
-    self.JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
-        2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
-
     def traverse(self, t, p=0):
         for item in t:
             if not isinstance(item, tuple):
                 yield(p, item)
                 p = item
             else:
-                for j in traverse(item, p):
+                for j in self.traverse(item, p):
                     yield j
 
     def __init__(self):
@@ -24,6 +21,8 @@ class Kinect2(object):
             PyKinectV2.FrameSourceTypes_Color | PyKinectV2.FrameSourceTypes_Body)
         self._kinect.max_body_count = 6
         self._bodies = None
+        self.JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
+            2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
     def _get_lines(self, body):
         if not body.is_tracked:
