@@ -167,14 +167,12 @@ class BodyGameRuntime(object):
 
     def run(self):
         # -------- Main Program Loop -----------
-        output = open("./data/" + str(time.time()), "wb+")
+        output = open("../data/" + str(time.time()), "wb+")
         starttime = time.time()
-        count = 0
         while not self._done:
             # --- Main event loop
             for event in pygame.event.get():  # User did something
                 if event.type == pygame.QUIT:  # If user clicked close
-                    print count
                     self._done = True  # Flag that we are done so we exit this loop
 
                 elif event.type == pygame.VIDEORESIZE:  # window resized
@@ -205,7 +203,7 @@ class BodyGameRuntime(object):
                         self._body = i
                     if self._body != i:
                         print 'wrong body'
-                        sys.exit()
+                        self._done = True
                     # print 'hi'
                     joints = body.joints
 
@@ -213,9 +211,8 @@ class BodyGameRuntime(object):
                     jointAngles = []
                     for j in range(25):
                             angles = self.orientation_to_degrees(orientation[j].Orientation)
-                            jointAngles.append(angles)
-                    count += 1
-                    output.write(str(jointAngles) + '\n')
+                            jointAngles.append(str(angles))
+                    output.write(';'.join(jointAngles) + '\n')
 
                     # convert joint coordinates to color space
                     joint_points = self._kinect.body_joints_to_color_space(
@@ -237,9 +234,8 @@ class BodyGameRuntime(object):
             # --- Go ahead and update the screen with what we've drawn.
             pygame.display.flip()
 
-            # --- Limit to 60 frames per second
-            self._clock.tick(120)
-            time.sleep(1 / 30 - ((time.time() - starttime) % 1 / 30))
+            # --- Limit to 30 frames per second
+            self._clock.tick(30)
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
         pygame.quit()
