@@ -1,21 +1,26 @@
 import csv
 import math
-from lib. kinect import Kinect2
+
+from lib.kinect import Kinect2
 
 file = "1478280688.29"
 
 kinect = Kinect2()
 
+
 def read(file):
-    reader = csv.reader(open("data/" + file, "r"), delimiter=';', skipinitialspace=True)
+    reader = csv.reader(open("data/" + file, "r"),
+                        delimiter=';', skipinitialspace=True)
     values = []
     for row in reader:
-        yield [ eval(x) for x in row]
+        yield [eval(x) for x in row]
+
 
 def get_coords(start, angles, length):
     y = math.sin(angles[0]) * length
     x = math.sin(angles[1]) * length
     return (start[0] + x, start[1] + y)
+
 
 def get_frame(values, h, w):
     traversal = kinect.traverse(kinect.JointHierarchy)
