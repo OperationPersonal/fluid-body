@@ -2,9 +2,6 @@ from pykinect2 import PyKinectRuntime, PyKinectV2
 from pykinect2.PyKinectV2 import *
 
 
-# print list(traverse(JointHierarchy))
-
-
 class Kinect2(object):
 
     def traverse(self, t, p=0):
