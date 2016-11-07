@@ -47,14 +47,13 @@ class Kinect2(object):
         frame = [eval(x) for x in self._selected.next()]
         lines = self._get_lines(self._body)
         traversal = list(self.traversal(self.JointHierarchy))
+        linemap = [None for i in range(25)]
         for i in range(len(lines)):
             t = traversal[i]
             l = lines[i]
+            prev = linemap[t[0]]
             nextcoords = self._get_coords(prev, frame[t[1]], t, l)
-            if not nextcoords:
-                return
-            yield (t, prev, nextcoords)
-            prev = nextcoords
+            linemap[t[0]] = nextcoords
 
     def close(self):
         self._kinect.close()
