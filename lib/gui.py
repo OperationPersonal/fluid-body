@@ -2,6 +2,7 @@ import Tkinter as tk
 from Tkinter import *
 
 import pygame as py
+from interface import GameInterface
 
 
 class Gui(object):
@@ -40,10 +41,14 @@ class Gui(object):
         addMenuButton(setstate('RECORD'), text='Record')
         addMenuButton(compare, text='Compare')
 
+    def restart(self):
+        self.__init__()
+        self.run()
+
     def listrecords(self):
         root = self._root
         menu = Frame(root, width=500, height=500)
-        menu.grid(columnspan=4)
+        menu.grid(columnspan=4, padx=100, pady=100)
 
         def addRecord(handle, name, buttons=[]):
 
@@ -54,49 +59,37 @@ class Gui(object):
                 root.destroy()
 
             b = Frame(menu, width=125, height=125)
-            b.grid(column=len(buttons))
+            b.grid(row=len(buttons), sticky=W)
             buttons.append(b)
-            b = Button(b, text=name or 'Exit', command=startcompare)
-            b.pack()
+            b = Button(b, text=name or 'Cancel', command=startcompare)
+            b.pack(side=LEFT)
 
         records = [('file handle', 'Assigned Name')]
+        addRecord(None, None)
         for record in records:
             addRecord(*record)
-        addRecord(None, None)
 
     def gui_close(self):
         if self._state == 'QUIT':
-            sys.exit()
-            return
+            return sys.exit()
         if self._state == 'MENU':
             self.__init__()
             self.run()
             return
-        screen = self._screen = py.display.set_mode((750, 750))
-        screen.fill(py.Color(255, 255, 255))
+        game = GameInterface(callback=self.restart)
         if self._state == 'START':
-            py.draw.circle(screen, (0, 0, 0), (375, 375), 125)
+            game.setBackgroundColor((255, 255, 255))
+            game.run()
         elif self._state == 'RECORD':
-            py.draw.circle(screen, (0, 255, 0), (375, 375), 125)
-        if self._state == 'COMPARE':
-            print(self._recording, self._title)
-            py.draw.circle(screen, (0, 0, 255), (375, 375), 125)
-        self.runpy()
+            game.setBackgroundColor((255, 255, 0))
+            game.run()
+        elif self._state == 'COMPARE':
+            game.setBackgroundColor((0, 0, 255))
+            game.run()
 
     def run(self):
         self._root.mainloop()
         self.gui_close()
-
-    def runpy(self):
-        # This is where the recordstuff goes
-        while True:
-            for event in py.event.get():
-                if event.type == py.QUIT:
-                    py.quit()
-                    self.__init__()
-                    self.run()
-
-            py.display.update()
 
 if __name__ == '__main__':
     g = Gui()
