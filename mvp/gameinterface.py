@@ -9,6 +9,7 @@ class GameInterface(object):
         screen.fill(game.Color(*background))
         self._clock = game.time.Clock()
         self._callback = callback
+        self._surface = game.Surface((width, height), depth=32)
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         self._background_color = background
@@ -27,6 +28,10 @@ class GameInterface(object):
             for event in game.event.get():
                 if event.type == game.QUIT:
                     self.quit()
+
+            if stream:
+                for (start, end) in stream:
+                    game.draw.line(self._surface, game.color.THECOLORS["red"], start, end, 8)
 
             # game logic goes here
             game.draw.circle(screen, (0, 0, 0), (x, y), 50)
