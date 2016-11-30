@@ -87,9 +87,6 @@ class Gui(object):
         self._root.mainloop()
         self.gui_close()
 
-
-
-
 if __name__ == '__main__':
     g = Gui()
     g.run()

@@ -184,8 +184,7 @@ class BodyGameRuntime(object):
 
             # --- copy back buffer surface pixels to the screen, resize it if needed and keep aspect ratio
             # --- (screen size may be different from Kinect's color frame size)
-            h_to_w = float(self._frame_surface.get_height()) / \
-                self._frame_surface.get_width()
+            h_to_w = float(self._frame_surface.get_height()) / self._frame_surface.get_width()
             target_height = int(h_to_w * self._screen.get_width())
             surface_to_draw = pygame.transform.scale(
                 self._frame_surface, (self._screen.get_width(), target_height))
