@@ -11,6 +11,6 @@ from pykinect2.PyKinectV2 import *
 
 class Lesson(object):
 
-  def __init__(self, lesson=None):
-    self._lesson = lesson
-    # self._kinect =
+    def __init__(self, lesson=None):
+        self._lesson = lesson
+        #   # self._kinect =
