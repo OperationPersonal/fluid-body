@@ -42,13 +42,25 @@ class KinectStream:
     def hasNewBodyFrame(self):
         return self._kinect.has_new_body_frame()
 
+    def refreshBody(self, old_body):
+        frame = self.getLastBodyFrame()
+        for body in frame.bodies:
+            if not body.is_tracked:
+                continue
+            return body
+
+    def traverseBody(self, body):
+        points = self._kinect.body_joints_to_color_space(body.joints)
+        joints = body.joints
+
     def drawBody(self, body):
         points = self._kinect.body_joints_to_color_space(body.joints)
         joints = body.joints
+        positions = [None for i in range(25)]
         for joint in traverse():
             state = (joints[joint[0]].TrackingState,
                      joints[joint[1]].TrackingState)
-            if state == (TrackingState_NotTracked, TrackingState_NotTracked) or state == (TrackingState_Inferred, TrackingState_Inferred):
+            if state[0] == TrackingState_NotTracked or state[1] == TrackingState_NotTracked or state == (TrackingState_Inferred, TrackingState_Inferred):
                 continue
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
@@ -64,3 +76,9 @@ class KinectStream:
                           (x * x) - (y * y) - (z * z)) / math.pi * 180.0
 
         return (pitch, yaw, roll)
+
+    def degreesToCoordinates(self, prev, degrees, length=15):
+        pitch, yaw, roll = degrees
+        dy = math.sin(pitch) * length
+        dx = math.sin(yaw) * length
+        return (prev[0] + dx, prev[1] + dy)

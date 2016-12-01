@@ -9,7 +9,7 @@ from kinectwrapper import KinectStream
 
 class GameInterface(object):
 
-    def __init__(self, width=750, height=750, background=(255, 255, 255), callback=lambda: None):
+    def __init__(self, callback=lambda: None):
 
         game.init()
         self._infoObject = game.display.Info()
@@ -24,7 +24,7 @@ class GameInterface(object):
         # self._kinect = runtime.PyKinectRuntime(FrameSourceTypes_Color | FrameSourceTypes_Body)
         self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
-        self._bodyFrame = None
+        self._bodies = None
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         # self._background_color = background
@@ -42,11 +42,19 @@ class GameInterface(object):
         del addr
         surface.unlock()
 
-    def surfaceToScreen(self):
+    def analysisScreen(self):
+        tests = game.Surface( (400, scaled_height))
+        tests.fill((0, 0, 0))
+
+    def cameraScreen(self):
         scale = float(self._surface.get_height()) / self._surface.get_width()
         scaled_height = int(scale * self._screen.get_width())
         draw_surface = game.transform.scale(self._surface, (self._screen.get_width(), scaled_height))
+
+    def surfaceToScreen(self, analysis):
+        draw_surface = cameraScreen()
         self._screen.blit(draw_surface, (0, 0))
+        self._screen.blit(analysis, (self._screen.get_width() - 400, 0))
         draw_surface = None
         game.display.update()
 
@@ -54,37 +62,37 @@ class GameInterface(object):
         x = 250
         y = 250
         screen, kinect, surface = self._screen, self._kinect, self._surface
-        # stream = [( (250, 250), (275, 275) )]
-        stream = False
+        body = None
         # print kinect.traverse()
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
                     self.quit()
-
-            if kinect and kinect.hasNewBodyFrame():
-                self._bodyFrame = kinect.getLastBodyFrame()
-
-            if self._bodyFrame:
-                for body in self._bodyFrame.bodies:
-                    if not body.is_tracked:
-                        continue
-                    stream = kinect.drawBody(body)
-                    if stream:# should be if self._kinect has stream of bodystuff or nah
-                        for (start, end) in stream:
-                            try:
-                                game.draw.line(self._surface, game.color.THECOLORS["red"], start, end, 8)
-                            except:
-                                pass
-
-            # print 'main game loop'
+                elif event.type == game.VIDEORESIZE:  # window resized
+                    self._screen = game.display.set_mode(event.dict['size'],
+                        game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
 
             if kinect and kinect.hasNewColorFrame():
                 # print 'kinect loop'
                 self.drawCameraInput(kinect.getLastColorFrame(), surface)
 
+            # print 'main loop'
+            if kinect and kinect.hasNewBodyFrame():
+                # print 'body refresh'
+                self._bodies = kinect.getLastBodyFrame()
+            # print bodyFrame
+            if self._bodies:
+                for body in self._bodies.bodies:
+                    if not body.is_tracked:
+                        continue
+                    for (start, end) in kinect.drawBody(body):
+                        try:
+                            game.draw.line(self._surface, game.color.THECOLORS["red"], start, end, 8)
+                        except:
+                            pass
+
             self.surfaceToScreen()
             game.display.update()
             game.display.flip()
 
-            self._clock.tick(15)
+            self._clock.tick(120)

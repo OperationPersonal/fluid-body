@@ -74,17 +74,6 @@ class Kinect2(object):
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
             yield line
 
-    def get_body(self):
-        if self._kinect.has_new_body_frame():
-            bodies = self._bodies = self._kinect.get_last_body_frame().bodies
-        for i in range(len(bodies)):
-            body = bodies[i]
-            if not body.is_tracked or (self._bodyindex and not i == self._bodyindex):
-                continue
-            self._bodyindex = i
-            return body
-        return
-
     def color_frame(self):
         if self._kinect.has_new_color_frame():
             return self._kinect.get_last_color_frame()

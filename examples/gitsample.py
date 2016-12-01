@@ -196,7 +196,7 @@ class BodyGameRuntime(object):
             pygame.display.flip()
 
             # --- Limit to 60 frames per second
-            self._clock.tick(60)
+            self._clock.tick(15)
 
         # Close our Kinect sensor, close the window and quit.
         self._kinect.close()
