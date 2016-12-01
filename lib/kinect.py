@@ -91,9 +91,6 @@ class Kinect2(object):
         angles = str(self.orientation_to_degrees(body.joint_orientations[i].Orientation)) for i in range(25)
         self._output.write(';'.join(angles) + '\n')
 
-        for i in range(25):
-            orientation = self._orientation_to_degrees(quats[i].Orientation)
-
     def orientation_to_degrees(self, orientation):
         x = orientation.x
         y = orientation.y

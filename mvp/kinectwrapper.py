@@ -56,17 +56,16 @@ class KinectStream:
                 continue
             return body
 
-    def traverseBody(self, angle):
-        for count, coord in enumerate(self._bone_lengths):
+    def traverseBody(self, angles):
         coords = [None for x in range(25)]
-        coords[0] = (100, 30)
+        coords[0] = (200, 100)
         prev = 0
-        for count, joint in enumerate(traverse()):
+        for count, x in enumerate(traverse()):
             length = self._bone_lengths[count]
-            coords[joint[1]] = get_coords(prev, angle, length)
-            line = (coords[prev], coords[joint[1]])
-            prev = joint[1]
-            yield line
+            if length:
+                coords[x[1]] = get_coords(coords[prev], angles[x[1]], length)
+                line = (coords[prev], coords[x[1]])
+                yield line
 
 
     def drawBody(self, body):
@@ -79,7 +78,8 @@ class KinectStream:
                 continue
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
-            self._bone_lengths[count] = math.hypots(point[0].x - point[1].x, point[0].y - point[1].y)
+            print count
+            self._bone_lengths[count] = math.hypot(point[0].x - point[1].x, point[0].y - point[1].y)
             yield line
 
     def orientationToDegrees(self, orientation):
