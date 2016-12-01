@@ -80,6 +80,7 @@ class Gui(object):
             game.setBackgroundColor((255, 255, 0))
             game.run()
         elif self._state == 'COMPARE':
+            game.setFileName(self._recording)
             game.setBackgroundColor((0, 0, 255))
             game.run()
 

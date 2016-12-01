@@ -9,7 +9,7 @@ from kinectwrapper import KinectStream
 
 class GameInterface(object):
 
-    def __init__(self, callback=lambda: None):
+    def __init__(self, callback=lambda: None, filename=None):
 
         game.init()
         self._infoObject = game.display.Info()
@@ -25,11 +25,15 @@ class GameInterface(object):
         self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
+        self._currfile = filename
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         # self._background_color = background
         # self._screen.fill(game.Color(*background))
         pass
+
+    def setFileName(self, filename):
+        self._currfile = filename
 
     def quit(self):
         game.quit()

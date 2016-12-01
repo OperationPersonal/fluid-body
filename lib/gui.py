@@ -37,7 +37,7 @@ class Gui(object):
             menu.destroy()
             self.listrecords()
 
-        addMenuButton(setstate('START'), text='Start')
+        # addMenuButton(setstate('START'), text='Start')
         addMenuButton(setstate('RECORD'), text='Record')
         addMenuButton(compare, text='Compare')
 
