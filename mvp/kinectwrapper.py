@@ -15,11 +15,18 @@ def traverse(t=JointHierarchy, p=0):
             for j in traverse(item, p):
                 yield j
 
+def get_coords(start, angles, length):
+    y = math.sin(angles[0]) * length
+    x = math.sin(angles[1]) * length
+    return (start[0] + x, start[1] + y)
+
 class KinectStream:
 
     def __init__(self):
         self._kinect = runtime.PyKinectRuntime(
             FrameSourceTypes_Color | FrameSourceTypes_Body)
+        self._bone_lengths = [None for i in range(25)]
+
 
     def close(self):
         self._kinect.close()
@@ -49,21 +56,30 @@ class KinectStream:
                 continue
             return body
 
-    def traverseBody(self, body):
-        points = self._kinect.body_joints_to_color_space(body.joints)
-        joints = body.joints
+    def traverseBody(self, angle):
+        for count, coord in enumerate(self._bone_lengths):
+        coords = [None for x in range(25)]
+        coords[0] = (100, 30)
+        prev = 0
+        for count, joint in enumerate(traverse()):
+            length = self._bone_lengths[count]
+            coords[joint[1]] = get_coords(prev, angle, length)
+            line = (coords[prev], coords[joint[1]])
+            prev = joint[1]
+            yield line
+
 
     def drawBody(self, body):
         points = self._kinect.body_joints_to_color_space(body.joints)
         joints = body.joints
-        positions = [None for i in range(25)]
-        for joint in traverse():
+        for count, joint in enumerate(traverse()):
             state = (joints[joint[0]].TrackingState,
                      joints[joint[1]].TrackingState)
             if state[0] == TrackingState_NotTracked or state[1] == TrackingState_NotTracked or state == (TrackingState_Inferred, TrackingState_Inferred):
                 continue
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
+            self._bone_lengths[count] = math.hypots(point[0].x - point[1].x, point[0].y - point[1].y)
             yield line
 
     def orientationToDegrees(self, orientation):

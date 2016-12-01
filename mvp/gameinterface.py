@@ -7,6 +7,8 @@ import _ctypes
 # from pykinect2.PyKinectV2 import *
 from kinectwrapper import KinectStream
 
+ANALYSIS_WIDTH = 400
+
 class GameInterface(object):
 
     def __init__(self, callback=lambda: None, filename=None):
@@ -24,6 +26,7 @@ class GameInterface(object):
         # self._kinect = runtime.PyKinectRuntime(FrameSourceTypes_Color | FrameSourceTypes_Body)
         self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
+        self._analysis = game.Surface((ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
         self._bodies = None
         self._currfile = filename
 
@@ -46,20 +49,18 @@ class GameInterface(object):
         del addr
         surface.unlock()
 
-    def analysisScreen(self):
-        tests = game.Surface( (400, scaled_height))
-        tests.fill((0, 0, 0))
-
-    def cameraScreen(self):
+    def surfaceToScreen(self, analysis):
         scale = float(self._surface.get_height()) / self._surface.get_width()
         scaled_height = int(scale * self._screen.get_width())
-        draw_surface = game.transform.scale(self._surface, (self._screen.get_width(), scaled_height))
 
-    def surfaceToScreen(self, analysis):
-        draw_surface = cameraScreen()
+        draw_surface = game.transform.scale(self._surface, (self._screen.get_width(), scaled_height))
+        analysis_surface = game.transform.scale(self._analysis, (ANALYSIS_WIDTH, scaled_height))
+
         self._screen.blit(draw_surface, (0, 0))
-        self._screen.blit(analysis, (self._screen.get_width() - 400, 0))
+        self._screen.blit(analysis, (self._screen.get_width() - ANALYSIS_WIDTH, 0))
+
         draw_surface = None
+        analysis_surface = None
         game.display.update()
 
     def run(self):
@@ -68,6 +69,12 @@ class GameInterface(object):
         screen, kinect, surface = self._screen, self._kinect, self._surface
         body = None
         # print kinect.traverse()
+
+        f = None
+        if self._currfile:
+            f = csv.reader(open("data/" + self._currfile, "r"),
+                                delimiter=';', skipinitialspace=True)
+
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
@@ -92,6 +99,14 @@ class GameInterface(object):
                     for (start, end) in kinect.drawBody(body):
                         try:
                             game.draw.line(self._surface, game.color.THECOLORS["red"], start, end, 8)
+                        except:
+                            pass
+
+                if f:
+                    joint_data = [eval(x) for x in f.next()]
+                    for (start, end) in kinect.traverseBody(joint_data):
+                        try:
+                            game.draw.line(self._analysis, game.color.THECOLORS["green"], start, end, 8)
                         except:
                             pass
 
