@@ -40,7 +40,8 @@ class AnalysisStream(object):
         return (start[0] + x, start[1] + y)
 
     def prepSurface(self):
-        self._analysis_surface.fill((0, 0, 0))
+        # self._analysis_surface.fill((0, 0, 0))
+        pass
 
     def getNextFrame(self):
         try:
