@@ -41,6 +41,7 @@ class GameInterface(object):
         self._kinect.initRecord()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
+        self._analyze = False
         self._analysis = AnalysisStream(self._kinect, filename)
         self._state = mode
         self._currfile = filename
@@ -91,6 +92,9 @@ class GameInterface(object):
             except:
                 pass
 
+    def start_analysis(self):
+        self._analyze = True
+
     def run(self):
         x = 250
         y = 250
@@ -104,7 +108,7 @@ class GameInterface(object):
                         delimiter=';', skipinitialspace=True)
         newlines = []
 
-        audio = AudioInterface()
+        audio = AudioInterface(self)
         stop_listening = audio.listen()
         while True:
             for event in game.event.get():
@@ -133,7 +137,8 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 analysis.prepSurface()
-                self.drawLines(analysis.getBody(body), analysis.getSurface())
+                if self._analyze:
+                    self.drawLines(analysis.getBody(body), analysis.getSurface())
 
             self.surfaceToScreen()
 
