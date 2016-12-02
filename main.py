@@ -9,8 +9,8 @@ with open('.env', 'r+') as f:
             api, value = key.split('=')
             os.environ[api] = value
 
-# g = gui.Gui()
-# g.run()
+g = gui.Gui()
+g.run()
 
-audio = audio.AudioInterface()
-audio.listen()
+# audio = audio.AudioInterface()
+# audio.listen()

@@ -41,6 +41,7 @@ class GameInterface(object):
         self._analysis = AnalysisStream(self._kinect, filename)
         self._state = mode
         self._currfile = filename
+        self._bodies = []
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         # self._background_color = background
@@ -76,6 +77,11 @@ class GameInterface(object):
 
     def drawLines(self, lines, surface, width=8):
         color = random.choice(GAME_COLORS)
+        if not lines:
+            return
+        lines = list(lines)
+        if not lines[0]:
+            return
         for (start, end) in lines:
             try:
                 game.draw.line(surface, color, start, end, width)
@@ -114,12 +120,13 @@ class GameInterface(object):
                     self._bodies = kinect.getLastBodyFrame().bodies
 
             # print bodyFrame
-            for body in self._bodies.bodies:
+            for body in self._bodies:
                 if not body.is_tracked:
                     continue
                 self.drawLines(kinect.drawBody(body), self._surface)
-                self.drawLines(analysis.drawBody(body), analysis.getSurface())
+                analysis.prepSurface()
+                self.drawLines(analysis.getBody(body), analysis.getSurface())
 
             self.surfaceToScreen()
 
-            self._clock.tick(30)
+            self._clock.tick(120)

@@ -1,6 +1,7 @@
 import pygame as game
 from kinectwrapper import traverse
-
+import csv
+import math
 ANALYSIS_WIDTH = 400
 
 class AnalysisStream(object):
@@ -11,7 +12,7 @@ class AnalysisStream(object):
         self.openAnalysis(filename)
 
     def openAnalysis(self, filename=None):
-        self._file_handle = csv.reader(open("data/" + self._currfile, "r"),
+        self._file_handle = csv.reader(open("data/" + filename, "r"),
                         delimiter=';', skipinitialspace=True) if filename else None
 
     def getBody(self, body):
@@ -38,6 +39,16 @@ class AnalysisStream(object):
         x = math.sin(angles[1]) * length
         return (start[0] + x, start[1] + y)
 
+    def prepSurface(self):
+        self._analysis_surface.fill((0, 0, 0))
+
     def getNextFrame(self):
-        new_frame = self._file_handle.next() if self._file_handle else None
-        return list(eval(joint) for joint in new_frame) if new_frame else None
+        try:
+            new_frame = self._file_handle.next() if self._file_handle else None
+            if not new_frame:
+                self._file_handle = None
+                return None
+            return list(eval(joint) for joint in new_frame)
+        except:
+            self._file_handle = None
+            return None
