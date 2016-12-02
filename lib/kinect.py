@@ -88,7 +88,7 @@ class Kinect2(object):
             break
 
     def _write_frame(self, body):
-        angles = str(self.orientation_to_degrees(body.joint_orientations[i].Orientation)) for i in range(25)
+        angles = str(list(self.orientation_to_degrees(body.joint_orientations[i].Orientation) for i in range(25)))
         self._output.write(';'.join(angles) + '\n')
 
     def orientation_to_degrees(self, orientation):

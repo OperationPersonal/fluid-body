@@ -130,7 +130,7 @@ class GameInterface(object):
                 if not body.is_tracked:
                     continue
                 self.drawLines(kinect.drawBody(body), self._surface)
-                if self._state = STATE_RECORD:
+                if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 analysis.prepSurface()
                 self.drawLines(analysis.getBody(body), analysis.getSurface())

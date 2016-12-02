@@ -2,7 +2,7 @@ from pykinect2 import PyKinectV2 as kv2
 from pykinect2 import PyKinectRuntime as runtime
 from pykinect2.PyKinectV2 import *
 import math
-
+import time
 JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
     2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
@@ -90,8 +90,8 @@ class KinectStream:
         self._file_handle = open('./data/' + str(time.time()), "wb+")
 
     def recordFrame(self, body):
-        angles = str(self.orientation_to_degrees(body.joint_orientations[i].Orientation)) for i in range(25)
-        self._output.write(';'.join(angles) + '\n')
+        angles = (str(self.orientationToDegrees(body.joint_orientations[i].Orientation)) for i in range(25))
+        self._file_handle.write(';'.join(angles) + '\n')
 
     def orientationToDegrees(self, orientation):
         x, y, z, w = orientation.x, orientation.y, orientation.z, orientation.w
