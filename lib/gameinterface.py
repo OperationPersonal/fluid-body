@@ -38,6 +38,7 @@ class GameInterface(object):
         self._callback = callback
         # self._kinect = runtime.PyKinectRuntime(FrameSourceTypes_Color | FrameSourceTypes_Body)
         self._kinect = KinectStream()
+        self._kinect.initRecord()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
         self._analysis = AnalysisStream(self._kinect, filename)
@@ -129,6 +130,8 @@ class GameInterface(object):
                 if not body.is_tracked:
                     continue
                 self.drawLines(kinect.drawBody(body), self._surface)
+                if self._state = STATE_RECORD:
+                    kinect.recordFrame(body)
                 analysis.prepSurface()
                 self.drawLines(analysis.getBody(body), analysis.getSurface())
 
