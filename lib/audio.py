@@ -1,28 +1,24 @@
 import os
 
 import pyttsx
-import speech_recognition as sr
+import speech_recognition
 
 class AudioInterface(object):
     def __init__(self):
         self._engine = pyttsx.init()
-        r = sr.Recognizer()
-        with sr.Microphone() as source:
-            audio = r.listen(source)
-        try:
-            print("Google Speech Recognition thinks you said " + r.recognize_google(audio), key=os.environ['GOOGLE'])
-        except sr.UnknownValueError:
-            print("Google Speech Recognition could not understand audio")
-        except sr.RequestError as e:
-            print("Could not request results from Google Speech Recognition service; {0}".format(e))
+        self._recognizer = speech_recognition.Recognizer()
 
     def speak(self, text):
         self._engine.say(text)
         self._engine.runAndWait()
 
     def listen(self):
-        pass
-
-if __name__ == '__main__':
-    audio = AudioInterface()
-    audio.speak('hello, whats up')
+        with speech_recognition.Microphone() as source:
+            self._recognizer.adjust_for_ambient_noise(source)
+            audio = self._recognizer.listen(source)
+        try:
+            print self._recognizer.recognize_sphinx(audio)
+        except speech_recognition.UnknownValueError:
+            print("Could not understand audio")
+        except speech_recognition.RequestError as e:
+            print("Recognition Error: {0}".format(e))
