@@ -86,6 +86,13 @@ class KinectStream:
                 point[0].x - point[1].x, point[0].y - point[1].y)
             yield line
 
+    def initRecord(self):
+        self._file_handle = open('./data/' + str(time.time()), "wb+")
+
+    def recordFrame(self, body):
+        angles = str(self.orientation_to_degrees(body.joint_orientations[i].Orientation)) for i in range(25)
+        self._output.write(';'.join(angles) + '\n')
+
     def orientationToDegrees(self, orientation):
         x, y, z, w = orientation.x, orientation.y, orientation.z, orientation.w
 
