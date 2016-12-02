@@ -1,0 +1,9 @@
+autopep8==1.2.4
+enum34==1.1.6
+numpy==1.11.2
+pep8==1.7.0
+pycodestyle==2.0.0
+pylibfreenect2==0.1.1
+pyserial==3.2.1
+pyttsx==1.1
+yapf==0.13.1
