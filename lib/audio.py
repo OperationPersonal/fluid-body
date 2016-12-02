@@ -1,16 +1,18 @@
 import pyttsx
-from pocketsphinx.pocketsphinx import *
-from sphinxbase.sphinxbase import *
-from os import environ, path
+import speech_recognition as sr
 
 class AudioInterface(object):
     def __init__(self):
         self._engine = pyttsx.init()
-        config = Decoder.default_config()
-        config.set_string('-hmm', path.join(MODELDIR, 'en-us/en-us'))
-        config.set_string('-lm', path.join(MODELDIR, 'en-us/en-us.lm.bin'))
-        config.set_string('-dict', path.join(MODELDIR, 'en-us/cmudict-en-us.dict'))
-        decoder = Decoder(config)
+        r = sr.Recognizer()
+        with sr.Microphone() as source:
+            audio = r.listen(source)
+        try:
+            print("Google Speech Recognition thinks you said " + r.recognize_google(audio))
+        except sr.UnknownValueError:
+            print("Google Speech Recognition could not understand audio")
+        except sr.RequestError as e:
+            print("Could not request results from Google Speech Recognition service; {0}".format(e))
 
     def speak(self, text):
         self._engine.say(text)
