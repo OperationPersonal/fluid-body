@@ -4,13 +4,15 @@ import _ctypes
 import csv
 import random
 
+from lib.audio import AudioInterface
+
 GAME_COLORS = [game.color.THECOLORS["red"],
-                   game.color.THECOLORS["blue"],
-                   game.color.THECOLORS["green"],
-                   game.color.THECOLORS["orange"],
-                   game.color.THECOLORS["purple"],
-                   game.color.THECOLORS["yellow"],
-                   game.color.THECOLORS["violet"]]
+               game.color.THECOLORS["blue"],
+               game.color.THECOLORS["green"],
+               game.color.THECOLORS["orange"],
+               game.color.THECOLORS["purple"],
+               game.color.THECOLORS["yellow"],
+               game.color.THECOLORS["violet"]]
 
 STATE_VIEW = 1
 STATE_RECORD = 0
@@ -101,9 +103,12 @@ class GameInterface(object):
                         delimiter=';', skipinitialspace=True)
         newlines = []
 
+        audio = AudioInterface()
+        stop_listening = audio.listen()
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
+                    stop_listening()
                     self.quit()
                 elif event.type == game.VIDEORESIZE:  # window resized
                     self._screen = game.display.set_mode(event.dict['size'],
