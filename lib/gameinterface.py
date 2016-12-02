@@ -77,6 +77,7 @@ class GameInterface(object):
         if self._currfile:
             f = csv.reader(open("data/" + self._currfile, "r"),
                         delimiter=';', skipinitialspace=True)
+        newlines = []
 
         while True:
             for event in game.event.get():
@@ -123,4 +124,4 @@ class GameInterface(object):
             game.display.update()
             game.display.flip()
 
-            self._clock.tick(120)
+            self._clock.tick(30)

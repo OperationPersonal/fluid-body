@@ -6,6 +6,7 @@ import math
 JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
     2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
+
 def traverse(t=JointHierarchy, p=0):
     for item in t:
         if not isinstance(item, tuple):
@@ -15,10 +16,12 @@ def traverse(t=JointHierarchy, p=0):
             for j in traverse(item, p):
                 yield j
 
+
 def get_coords(start, angles, length):
     y = math.sin(angles[0]) * length
     x = math.sin(angles[1]) * length
     return (start[0] + x, start[1] + y)
+
 
 class KinectStream:
 
@@ -26,7 +29,6 @@ class KinectStream:
         self._kinect = runtime.PyKinectRuntime(
             FrameSourceTypes_Color | FrameSourceTypes_Body)
         self._bone_lengths = [100 for i in range(25)]
-
 
     def close(self):
         self._kinect.close()
@@ -77,7 +79,8 @@ class KinectStream:
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
             # print count
-            self._bone_lengths[count] = math.hypot(point[0].x - point[1].x, point[0].y - point[1].y)
+            self._bone_lengths[count] = math.hypot(
+                point[0].x - point[1].x, point[0].y - point[1].y)
             yield line
 
     def orientationToDegrees(self, orientation):
