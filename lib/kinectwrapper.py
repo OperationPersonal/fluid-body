@@ -68,6 +68,9 @@ class KinectStream:
             line = (coords[x[0]], coords[x[1]])
             yield line
 
+    def getBoneLength(self, count):
+        return self._bone_lengths[count]
+
     def drawBody(self, body):
         points = self._kinect.body_joints_to_color_space(body.joints)
         joints = body.joints

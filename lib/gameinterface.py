@@ -1,19 +1,28 @@
 import pygame as game
 import ctypes
 import _ctypes
-
 import csv
+import random
 
-# from pykinect2 import PyKinectV2 as kv2
-# from pykinect2 import PyKinectRuntime as runtime
-# from pykinect2.PyKinectV2 import *
+GAME_COLORS = [game.color.THECOLORS["red"],
+                   game.color.THECOLORS["blue"],
+                   game.color.THECOLORS["green"],
+                   game.color.THECOLORS["orange"],
+                   game.color.THECOLORS["purple"],
+                   game.color.THECOLORS["yellow"],
+                   game.color.THECOLORS["violet"]]
+
+STATE_VIEW = 1
+STATE_RECORD = 0
+
 from kinectwrapper import KinectStream
+from analysis import AnalysisStream
 
 ANALYSIS_WIDTH = 400
 
 class GameInterface(object):
 
-    def __init__(self, callback=lambda: None, filename="1478280688.29"):
+    def __init__(self, callback=lambda: None, mode=STATE_VIEW, filename="1478280688.29"):
 
         game.init()
         self._infoObject = game.display.Info()
@@ -29,8 +38,8 @@ class GameInterface(object):
         self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
-        if filename:
-            self._analysis = game.Surface((ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
+        self._analysis = AnalysisStream(self._kinect, filename)
+        self._state = mode
         self._currfile = filename
 
     def setBackgroundColor(self, background=(255, 255, 255)):
@@ -58,18 +67,25 @@ class GameInterface(object):
 
         draw_surface = game.transform.scale(self._surface, (self._screen.get_width(), scaled_height))
         self._screen.blit(draw_surface, (0, 0))
-        if self._currfile:
-            analysis_surface = game.transform.scale(self._analysis, (ANALYSIS_WIDTH, scaled_height))
-            self._screen.blit(analysis_surface, (self._screen.get_width() - ANALYSIS_WIDTH, 0))
-            analysis_surface = None
-
-        draw_surface = None
+        analysis_surface = self._analysis.getSurface()
+        draw_analysis = game.transform.scale(analysis_surface, (analysis_surface.get_width(), scaled_height))
+        self._screen.blit(draw_analysis, (self._screen.get_width() - analysis_surface.get_width(), 0))
+        draw_surface = draw_analysis = analysis_surface = None
         game.display.update()
+        game.display.flip()
+
+    def drawLines(self, lines, surface, width=8):
+        color = random.choice(GAME_COLORS)
+        for (start, end) in lines:
+            try:
+                game.draw.line(surface, color, start, end, width)
+            except:
+                pass
 
     def run(self):
         x = 250
         y = 250
-        screen, kinect, surface = self._screen, self._kinect, self._surface
+        screen, kinect, surface, analysis = self._screen, self._kinect, self._surface, self._analysis
         body = None
         # print kinect.traverse()
 
@@ -86,42 +102,24 @@ class GameInterface(object):
                 elif event.type == game.VIDEORESIZE:  # window resized
                     self._screen = game.display.set_mode(event.dict['size'],
                         game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
+                elif event.type == game.KEYDOWN:
+                    if event.key == game.K_RETURN:
+                        self._state = (self._state + 1) % 2
+                        print(self._state)
 
-            if kinect and kinect.hasNewColorFrame():
-                # print 'kinect loop'
-                self.drawCameraInput(kinect.getLastColorFrame(), surface)
+            if kinect:
+                if kinect.hasNewColorFrame(): # must draw camera frame first or else the body gets covered
+                    self.drawCameraInput(kinect.getLastColorFrame(), surface)
+                if kinect.hasNewBodyFrame():
+                    self._bodies = kinect.getLastBodyFrame().bodies
 
-            # print 'main loop'
-            if kinect and kinect.hasNewBodyFrame():
-                # print 'body refresh'
-                self._bodies = kinect.getLastBodyFrame()
             # print bodyFrame
-            if self._bodies:
-                for body in self._bodies.bodies:
-                    if not body.is_tracked:
-                        continue
-                    for (start, end) in kinect.drawBody(body):
-                        try:
-                            game.draw.line(self._surface, game.color.THECOLORS["red"], start, end, 8)
-                        except:
-                            pass
-
-                    if f:
-                        self._analysis.fill((0, 0, 0))
-                        try:
-                            new_line = f.next()
-                        except:
-                            f = None
-                        else:
-                            joint_data = [eval(x) for x in new_line]
-                            for (start, end) in kinect.traverseBody(joint_data):
-                                try:
-                                    game.draw.line(self._analysis, game.color.THECOLORS["green"], start, end, 8)
-                                except:
-                                    pass
+            for body in self._bodies.bodies:
+                if not body.is_tracked:
+                    continue
+                self.drawLines(kinect.drawBody(body), self._surface)
+                self.drawLines(analysis.drawBody(body), analysis.getSurface())
 
             self.surfaceToScreen()
-            game.display.update()
-            game.display.flip()
 
             self._clock.tick(30)
