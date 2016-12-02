@@ -13,12 +13,24 @@ class AudioInterface(object):
         self._engine.runAndWait()
 
     def listen(self):
-        with speech_recognition.Microphone() as source:
-            self._recognizer.adjust_for_ambient_noise(source)
-            audio = self._recognizer.listen(source)
+        source = speech_recognition.Microphone()
+        self._recognizer.adjust_for_ambient_noise(source)
+        return source
+
+    def parse_audio(self, source):
+        audio = self._recognizer.listen(source)
         try:
-            print self._recognizer.recognize_sphinx(audio)
+            return self._recognizer.recognize_sphinx(audio)
         except speech_recognition.UnknownValueError:
-            print("Could not understand audio")
+            return "Could not understand audio"
         except speech_recognition.RequestError as e:
-            print("Recognition Error: {0}".format(e))
+            return "Recognition Error: {0}".format(e)
+
+    def loop(self):
+        source = self.listen()
+        while True:
+            print parse_audio(source)
+
+if __name__ == '__main__':
+    audio = AudioInterface()
+    audio.loop()
