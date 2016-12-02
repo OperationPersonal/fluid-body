@@ -4,8 +4,10 @@ class AudioInterface(object):
     def __init__(self):
         self._engine = pyttsx.init()
 
-    def queue(self, text):
+    def speak(self, text):
         self._engine.say(text)
-
-    def speak(self):
         self._engine.runAndWait()
+
+if __name__ == '__main__':
+    audio = AudioInterface()
+    audio.speak('hello, whats up')
