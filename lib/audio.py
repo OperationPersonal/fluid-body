@@ -1,3 +1,5 @@
+import os
+
 import pyttsx
 import speech_recognition as sr
 
@@ -8,7 +10,7 @@ class AudioInterface(object):
         with sr.Microphone() as source:
             audio = r.listen(source)
         try:
-            print("Google Speech Recognition thinks you said " + r.recognize_google(audio))
+            print("Google Speech Recognition thinks you said " + r.recognize_google(audio), key=os.environ['GOOGLE'])
         except sr.UnknownValueError:
             print("Google Speech Recognition could not understand audio")
         except sr.RequestError as e:
