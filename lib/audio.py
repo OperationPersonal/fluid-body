@@ -22,12 +22,13 @@ class AudioInterface(object):
 
     def parse_audio(self, recognizer, audio):
         try:
-            phrase = recognizer.recognize_google_cloud(audio, preferred_phrases=['start', 'stop'])
+            phrase = recognizer.recognize_sphinx(audio, keyword_entries=[('start', 1), ('stop', 1)])
             if phrase == 'start':
                 self.speak('started analysis')
                 self._interface.start_analysis()
-            self.speak(recognizer.recognize_google_cloud(audio, preferred_phrases=['start', 'stop']))
+            else:
+                self.speak(phrase)
         except speech_recognition.UnknownValueError:
-            self.speak("Could not understand you")
+            self.speak("I could not understand you")
         except speech_recognition.RequestError as e:
             self.speak("Recognition Error: {0}".format(e))
