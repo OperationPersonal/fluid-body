@@ -13,7 +13,7 @@ ANALYSIS_WIDTH = 400
 
 class GameInterface(object):
 
-    def __init__(self, callback=lambda: None, filename=None):
+    def __init__(self, callback=lambda: None, filename="1478280688.29"):
 
         game.init()
         self._infoObject = game.display.Info()
@@ -28,9 +28,10 @@ class GameInterface(object):
         # self._kinect = runtime.PyKinectRuntime(FrameSourceTypes_Color | FrameSourceTypes_Body)
         self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc().Width, self._kinect.colorFrameDesc().Height), 0, 32)
-        self._analysis = game.Surface((ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
         self._bodies = None
-        self._currfile = '1478280688.29'
+        if filename:
+            self._analysis = game.Surface((ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
+        self._currfile = filename
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         # self._background_color = background
@@ -56,13 +57,13 @@ class GameInterface(object):
         scaled_height = int(scale * self._screen.get_width())
 
         draw_surface = game.transform.scale(self._surface, (self._screen.get_width(), scaled_height))
-        analysis_surface = game.transform.scale(self._analysis, (ANALYSIS_WIDTH, scaled_height))
-
         self._screen.blit(draw_surface, (0, 0))
-        self._screen.blit(analysis_surface, (self._screen.get_width() - ANALYSIS_WIDTH, 0))
+        if self._currfile:
+            analysis_surface = game.transform.scale(self._analysis, (ANALYSIS_WIDTH, scaled_height))
+            self._screen.blit(analysis_surface, (self._screen.get_width() - ANALYSIS_WIDTH, 0))
+            analysis_surface = None
 
         draw_surface = None
-        analysis_surface = None
         game.display.update()
 
     def run(self):
@@ -105,12 +106,18 @@ class GameInterface(object):
                             pass
 
                     if f:
-                        joint_data = [eval(x) for x in f.next()]
-                        for (start, end) in kinect.traverseBody(joint_data):
-                            try:
-                                game.draw.line(self._analysis, game.color.THECOLORS["green"], start, end, 8)
-                            except:
-                                pass
+                        self._analysis.fill((0, 0, 0))
+                        try:
+                            new_line = f.next()
+                        except:
+                            f = None
+                        else:
+                            joint_data = [eval(x) for x in new_line]
+                            for (start, end) in kinect.traverseBody(joint_data):
+                                try:
+                                    game.draw.line(self._analysis, game.color.THECOLORS["green"], start, end, 8)
+                                except:
+                                    pass
 
             self.surfaceToScreen()
             game.display.update()

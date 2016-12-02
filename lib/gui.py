@@ -69,6 +69,9 @@ class Gui(object):
         for record in records:
             addRecord(*record)
 
+    def _getRecords(self):
+        return list(f for f in os.listdir('./data') if os.path.isfile(f))
+
     def gui_close(self):
         if self._state == 'QUIT':
             return sys.exit()

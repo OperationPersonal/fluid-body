@@ -25,7 +25,7 @@ class KinectStream:
     def __init__(self):
         self._kinect = runtime.PyKinectRuntime(
             FrameSourceTypes_Color | FrameSourceTypes_Body)
-        self._bone_lengths = [None for i in range(25)]
+        self._bone_lengths = [100 for i in range(25)]
 
 
     def close(self):
@@ -62,11 +62,9 @@ class KinectStream:
         prev = 0
         for count, x in enumerate(traverse()):
             length = self._bone_lengths[count]
-            if length:
-                coords[x[1]] = get_coords(coords[prev], angles[x[1]], length)
-                line = (coords[prev], coords[x[1]])
-                yield line
-
+            coords[x[1]] = get_coords(coords[x[0]], angles[x[1]], length)
+            line = (coords[x[0]], coords[x[1]])
+            yield line
 
     def drawBody(self, body):
         points = self._kinect.body_joints_to_color_space(body.joints)
@@ -78,7 +76,7 @@ class KinectStream:
                 continue
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
-            print count
+            # print count
             self._bone_lengths[count] = math.hypot(point[0].x - point[1].x, point[0].y - point[1].y)
             yield line
 
