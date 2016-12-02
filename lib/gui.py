@@ -1,9 +1,5 @@
-import Tkinter as tk
 from Tkinter import *
-
-import pygame as py
-from interface import GameInterface
-
+from gameinterface import GameInterface
 
 class Gui(object):
 
@@ -37,7 +33,7 @@ class Gui(object):
             menu.destroy()
             self.listrecords()
 
-        # addMenuButton(setstate('START'), text='Start')
+        addMenuButton(setstate('START'), text='Start')
         addMenuButton(setstate('RECORD'), text='Record')
         addMenuButton(compare, text='Compare')
 
@@ -69,9 +65,6 @@ class Gui(object):
         for record in records:
             addRecord(*record)
 
-    def _getRecords(self):
-        return list(f for f in os.listdir('./data') if os.path.isfile(f))
-
     def gui_close(self):
         if self._state == 'QUIT':
             return sys.exit()
@@ -87,6 +80,7 @@ class Gui(object):
             game.setBackgroundColor((255, 255, 0))
             game.run()
         elif self._state == 'COMPARE':
+            game.setFileName(self._recording)
             game.setBackgroundColor((0, 0, 255))
             game.run()
 
