@@ -9,7 +9,8 @@ class AnalysisStream(object):
     def __init__(self, kinect, filename=None):
         self._kinect = kinect#KinectStream
         self._analysis_surface = game.Surface((ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
-        self.openAnalysis(filename)
+        if filename:
+            self.openAnalysis(filename)
 
     def openAnalysis(self, filename=None):
         self._file_handle = csv.reader(open("data/" + filename, "r"),
@@ -29,7 +30,7 @@ class AnalysisStream(object):
                 length = self._kinect.getBoneLength(count)
                 outline[end_limb] = self.get_coords(outline[start_limb], frame[end_limb], length)
 
-        return outline
+        return( (outline[start], outline[end]) for start, end in traverse())
 
     def getSurface(self):
         return self._analysis_surface
@@ -40,8 +41,8 @@ class AnalysisStream(object):
         return (start[0] + x, start[1] + y)
 
     def prepSurface(self):
-        # self._analysis_surface.fill((0, 0, 0))
-        pass
+        self._analysis_surface.fill((0, 0, 0))
+        # pass
 
     def getNextFrame(self):
         try:

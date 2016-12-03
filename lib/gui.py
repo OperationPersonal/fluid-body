@@ -1,6 +1,6 @@
 from Tkinter import *
 from gameinterface import GameInterface
-
+import os
 class Gui(object):
 
     def __init__(self):
@@ -60,10 +60,17 @@ class Gui(object):
             b = Button(b, text=name or 'Cancel', command=startcompare)
             b.pack(side=LEFT)
 
-        records = [('file handle', 'Assigned Name')]
+        records = self.get_records()
+        # [('file handle', 'Assigned Name')]
         addRecord(None, None)
         for record in records:
+            print(record)
             addRecord(*record)
+
+    def get_records(self):
+        for f in os.listdir('./data'):
+            print f
+        return list((f, f) for f in os.listdir('./data') if f != '.gitignore')
 
     def gui_close(self):
         if self._state == 'QUIT':
@@ -72,16 +79,11 @@ class Gui(object):
             self.__init__()
             self.run()
             return
-        game = GameInterface(callback=self.restart)
-        if self._state == 'START':
-            game.setBackgroundColor((255, 255, 255))
-            game.run()
-        elif self._state == 'RECORD':
-            game.setBackgroundColor((255, 255, 0))
+        if self._state == 'RECORD':
+            game = GameInterface(callback=self.restart)
             game.run()
         elif self._state == 'COMPARE':
-            game.setFileName(self._recording)
-            game.setBackgroundColor((0, 0, 255))
+            game = GameInterface(callback=self.restart, filename=self._recording, mode='COMPARE')
             game.run()
 
     def run(self):

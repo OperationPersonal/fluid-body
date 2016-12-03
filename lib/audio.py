@@ -15,9 +15,11 @@ class AudioInterface(object):
 
     def listen(self):
         recognizer = speech_recognition.Recognizer()
-        microphone = speech_recognition.Microphone()
+        microphone = speech_recognition.Microphone(sample_rate=32000)
         with microphone as source:
             recognizer.adjust_for_ambient_noise(source)
+        pyaudio = microphone.get_pyaudio()
+        print pyaudio.get_default_input_device_info()
         return recognizer.listen_in_background(microphone, self.parse_audio)
 
     def parse_audio(self, recognizer, audio):
