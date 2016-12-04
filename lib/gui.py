@@ -1,6 +1,7 @@
 from Tkinter import *
 from gameinterface import GameInterface
 import os
+import logging
 class Gui(object):
 
     def __init__(self):
