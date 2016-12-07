@@ -1,11 +1,17 @@
+#!/usr/bin/python
+
 import pygame as game
-import ctypes
-import _ctypes
-import csv
-import random
+
 import logging
 
-from lib.audio import AudioInterface
+import kinectwrapper as kinect
+import analysis
+import audio
+
+"""Main game interface. Draws surfaces and contains main loop"""
+
+__author__ = "Leon Chou and Roy Xu"
+
 
 GAME_COLORS = [game.color.THECOLORS["red"],
                game.color.THECOLORS["blue"],
@@ -22,11 +28,11 @@ STATE_COMPARE = 'COMPARE'
 
 _LOGGER = logging.getLogger('gameinterface')
 
-from kinectwrapper import KinectStream, traverse
-from analysis import AnalysisStream
+FPS = 30
 
 
 class GameInterface(object):
+    """Wrapper for game interface"""
 
     def __init__(self, callback=lambda: None, mode=STATE_VIEW, filename=None):
         _LOGGER.info('Started interface')
@@ -34,15 +40,18 @@ class GameInterface(object):
         game.init()
         self._infoObject = game.display.Info()
         self._state = mode
-        self._kinect = KinectStream()
-        self._analysis = AnalysisStream(self._kinect, filename)
+        self._kinect = kinect.KinectStream()
+        self._analysis = analysis.AnalysisStream(self._kinect, filename)
         self._analysis_width = self._analysis.get_width()
         screen_width = self._infoObject.current_w >> 1
         screen_height = self._infoObject.current_h >> 1
         if self._state == STATE_COMPARE or self._state == STATE_WAITING:
             screen_width += self._analysis_width
-        self._screen = game.display.set_mode((screen_width, screen_height),
-                                             game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
+        self._screen = game.display.set_mode((screen_width,
+                                              screen_height),
+                                             game.HWSURFACE |
+                                             game.DOUBLEBUF |
+                                             game.RESIZABLE, 32)
         _LOGGER.debug('Screen width: {}, Screen height: {}'.format(
             self._screen.get_width(), self._screen.get_height()))
         game.display.set_caption('Fluid Body Analyser')
@@ -53,7 +62,7 @@ class GameInterface(object):
         self._bodies = None
         self._bodies = []
         self._pause = False
-        self._audio = AudioInterface(self)
+        self._audio = audio.AudioInterface(self)
 
     def quit(self):
         try:
@@ -83,7 +92,8 @@ class GameInterface(object):
         if self._state == STATE_WAITING or self._state == STATE_COMPARE:
             analysis_surface = self._analysis.getSurface()
             draw_analysis = game.transform.scale(
-                analysis_surface, (analysis_surface.get_width(), scaled_height))
+                analysis_surface, (analysis_surface.get_width(),
+                                   scaled_height))
             self._screen.blit(
                 draw_analysis, (draw_surface.get_width(), 0))
         draw_surface = draw_analysis = analysis_surface = None
@@ -98,7 +108,7 @@ class GameInterface(object):
         if not lines[0]:
             return
         font = game.font.Font(None, 60)
-        traversal = list(traverse())
+        traversal = list(kinect.traverse())
         for index, (start, end) in enumerate(lines):
             if start is None or end is None:
                 continue
@@ -113,24 +123,37 @@ class GameInterface(object):
                 pass
 
     def run(self):
-        screen, kinect, surface, analysis = self._screen, self._kinect, self._surface, self._analysis
-        stop_listening = self._audio.listen()
+        screen, kinect = self._screen, self._kinect,
+        surface, analysis = self._surface, self._analysis
+
+        # stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
-                    stop_listening()
+                    # stop_listening()
                     self.quit()
                 elif event.type == game.VIDEORESIZE:  # window resized
-                    self._screen = game.display.set_mode(event.dict['size'],
-                                                         game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
+                    self._screen = game.display.set_mode(
+                        event.dict['size'],
+                        game.HWSURFACE | game.DOUBLEBUF |
+                        game.RESIZABLE, 32)
                 elif event.type == game.KEYDOWN:
                     if event.key == game.K_RETURN:
-                        if self._state == STATE_RECORD or self._state == STATE_VIEW:
-                            self._state = STATE_RECORD if self._state == STATE_VIEW else STATE_VIEW
+                        state_record = self._state == STATE_RECORD
+                        state_view = self._state == STATE_VIEW
+                        if state_record or state_view:
+                            self._state = STATE_RECORD
+                            if self._state == STATE_VIEW:
+                                self._state = STATE_RECORD
+                            else:
+                                self._state = STATE_VIEW
                             if self._state == STATE_RECORD:
                                 kinect.initRecord()
                         else:
-                            self._state = STATE_COMPARE if self._state == STATE_WAITING else STATE_WAITING
+                            if self._state == STATE_WAITING:
+                                self._state = STATE_COMPARE
+                            else:
+                                self._state = STATE_WAITING
                     elif event.key == game.K_SPACE:
                         if kinect:
                             for body in self._bodies:
@@ -149,7 +172,9 @@ class GameInterface(object):
                 continue
 
             if kinect:
-                if kinect.hasNewColorFrame():  # must draw camera frame first or else the body gets covered
+                if kinect.hasNewColorFrame():
+                    # must draw camera frame first or else the body gets
+                    # covered
                     self.drawCameraInput(kinect.getLastColorFrame(), surface)
                 if kinect.hasNewBodyFrame():
                     self._bodies = kinect.getLastBodyFrame().bodies
@@ -164,12 +189,12 @@ class GameInterface(object):
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
                     analysis.prepSurface()
-                    lines = analysis.getBody(body)
-                    self.drawLines(analysis.getBody(
-                        body), analysis._analysis_surface, GAME_COLORS[count])
+                    self.drawLines(
+                        analysis.getBody(body),
+                        analysis._analysis_surface, GAME_COLORS[count])
                 elif self._state == STATE_WAITING:
                     analysis.prepSurface()
 
             self.surfaceToScreen()
 
-            self._clock.tick(30)
+            self._clock.tick(FPS)

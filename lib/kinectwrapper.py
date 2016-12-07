@@ -1,9 +1,16 @@
+#!/usr/bin/python
+
 from pykinect2 import PyKinectV2 as kv2
 from pykinect2 import PyKinectRuntime as runtime
 from pykinect2.PyKinectV2 import *
-import math
-import time
+
 import logging
+import math
+
+__author__ = "Leon Chou and Roy Xu"
+
+"""Wrapper for kinect library. Reads from kinect"""
+
 
 JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
     2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
@@ -19,12 +26,6 @@ def traverse(t=JointHierarchy, p=0):
         else:
             for j in traverse(item, p):
                 yield j
-
-
-def get_coords(start, angles, length):
-    y = math.sin(angles[0]) * length
-    x = math.sin(angles[1]) * length
-    return (start[0] + x, start[1] + y)
 
 
 class KinectStream:
@@ -86,7 +87,9 @@ class KinectStream:
         for count, joint in enumerate(traverse()):
             state = (joints[joint[0]].TrackingState,
                      joints[joint[1]].TrackingState)
-            if state[0] == TrackingState_NotTracked or state[1] == TrackingState_NotTracked or state == (TrackingState_Inferred, TrackingState_Inferred):
+            if (state[0] == TrackingState_NotTracked or
+                state[1] == TrackingState_NotTracked or
+                    state == (TrackingState_Inferred, TrackingState_Inferred)):
                 yield (None, None)
                 continue
             point = (points[joint[0]], points[joint[1]])
@@ -99,14 +102,18 @@ class KinectStream:
         for count, joint in enumerate(traverse()):
             state = (joints[joint[0]].TrackingState,
                      joints[joint[1]].TrackingState)
-            if state[0] == TrackingState_NotTracked or state[1] == TrackingState_NotTracked or state == (TrackingState_Inferred, TrackingState_Inferred):
+            if (state[0] == TrackingState_NotTracked or
+                state[1] == TrackingState_NotTracked or
+                    state == (TrackingState_Inferred, TrackingState_Inferred)):
                 continue
             point = (points[joint[0]], points[joint[1]])
             length = math.hypot(
                 point[0].x - point[1].x, point[0].y - point[1].y)
             self._bone_lengths[count] = length
             _LOGGER.debug(
-                'From joint{} to joint{} with length {}'.format(joint[0], joint[1], length))
+                'From joint{} to joint{} with length {}'.format(joint[0],
+                                                                joint[1],
+                                                                length))
 
     def initRecord(self):
         _LOGGER.info('Start recording')
