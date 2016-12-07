@@ -1,9 +1,16 @@
+#!/usr/bin/python
+
 import pygame as game
-from kinectwrapper import traverse
-import csv
-import math
-import logging
 import numpy as np
+
+import logging
+import math
+import csv
+
+"""Analyzes stored file streams for analysis surface"""
+
+__author__ = "Leon Chou and Roy Xu"
+
 ANALYSIS_WIDTH = 400
 
 FLIP = [4, 12]
@@ -20,18 +27,23 @@ class AnalysisStream(object):
             (ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
         if filename:
             self.openAnalysis(filename)
+        self._curr = 0
 
     def get_width(self):
         return ANALYSIS_WIDTH
 
     def openAnalysis(self, filename=None):
-        self._file_handle = csv.reader(open("data/" + filename, "r"),
-                                       delimiter=';', skipinitialspace=True) if filename else None
+        if filename:
+            file_handle = csv.reader(
+                open("data/" + filename, "r"), delimiter=';',
+                skipinitialspace=True)
+            self._frames = [row for row in file_handle]
+        else:
+            self._frames = None
 
     def close(self):
         try:
             self._kinect.close()
-            self._file_handle.close()
         except:
             pass
 
@@ -39,7 +51,7 @@ class AnalysisStream(object):
         return 2 * mid - coord
 
     def getBody(self, body):
-        if not self._file_handle:
+        if not self._frames:
             return None
         surface = self._analysis_surface
         frame = self.getNextFrame()
@@ -48,7 +60,7 @@ class AnalysisStream(object):
             mid = surface.get_width() / 2
             outline[0] = (mid,
                           surface.get_height() / 4 * 3, 0)
-            for count, (start_limb, end_limb) in enumerate(traverse()):
+            for count, (start_limb, end_limb) in enumerate(kinect.traverse()):
                 if not outline[start_limb]:
                     continue
                 length = self._kinect.getBoneLength(count)
@@ -82,18 +94,23 @@ class AnalysisStream(object):
     def get_coords(self, start, quat, length):
         r = [0, 0, length, 0]
         q_conj = [quat[0], -1 * quat[1], -1 * quat[2], -1 * quat[3]]
-        return [x + y for x, y in zip(self.quaternion_multiply(self.quaternion_multiply(quat, r), q_conj)[1:], start)]
+        return [x + y for x, y in zip(self.quaternion_multiply(
+            self.quaternion_multiply(quat, r), q_conj)[1:], start)]
 
     def prepSurface(self):
         self._analysis_surface.fill((0, 0, 0))
         # pass
 
+    def adjustFramePos(self, position):
+        self._curr = position
+
+    def frameBack(self):
+        self.adjustFramePos(position - gameinterface.FPS)
+
     def getNextFrame(self):
         try:
-            new_frame = self._file_handle.next() if self._file_handle else None
-            if not new_frame:
-                self._file_handle = None
-                return None
+            new_frame = self._frames[self._curr]
+            self._curr += 1
             return list(eval(joint) for joint in new_frame)
         except:
             self._file_handle = None

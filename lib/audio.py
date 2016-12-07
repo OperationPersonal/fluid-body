@@ -1,9 +1,13 @@
-import os
-import logging
+#!/usr/bin/python
 
 import pyttsx
 import speech_recognition
-import time
+
+import logging
+
+__author__ = "Leon Chou and Roy Xu"
+
+"""Handles audio. Speech recognition and output"""
 
 _LOGGER = logging.getLogger('audio')
 
@@ -37,10 +41,10 @@ class AudioInterface(object):
 
     def parse_audio(self, recognizer, audio):
         try:
-            phrase = recognizer.recognize_sphinx(
-                audio, keyword_entries=[('start', 1), ('stop', 1)])
+            # phrase = recognizer.recognize_sphinx(
+            #     audio, keyword_entries=[('start', 1), ('stop', 1)])
             _LOGGER.info('Recognized phrase')
-            # phrase = recognizer.recognize_google(audio)
+            phrase = recognizer.recognize_google(audio)
             self._interface._state = speech_recognition.STATE_COMPARE
             if 'start' in phrase:
                 _LOGGER.info('Starting analysis')
@@ -49,7 +53,7 @@ class AudioInterface(object):
                 self.speak(phrase)
         except speech_recognition.UnknownValueError:
             _LOGGER.info('Unrecognized phrase')
-            self.speak("I could not understand you")
+            # self.speak("I could not understand you")
         except speech_recognition.RequestError as e:
             _LOGGER.error('Recognition Error: %s', e)
             self.speak("Recognition Error: {0}".format(e))

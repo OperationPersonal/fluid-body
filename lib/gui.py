@@ -1,7 +1,15 @@
+#!/usr/bin/python
+
 from Tkinter import *
-from gameinterface import GameInterface
+
 import os
 import logging
+
+import gameinterface
+
+"""Tkinter gui that launches pygame according to button pressed"""
+
+__author__ = "Leon Chou and Roy Xu"
 
 
 class Gui(object):
@@ -18,7 +26,8 @@ class Gui(object):
         menu = Frame(root, width=500, height=500)
         menu.grid(columnspan=500, rowspan=500, padx=100, pady=100)
 
-        def addMenuButton(command, width=125, height=125, side=LEFT, text='button', col=[]):
+        def addMenuButton(command, width=125, height=125, side=LEFT,
+                          text='button', col=[]):
             b = Frame(menu, width=width, height=height)
             b.grid(column=len(col), row=0)
             col.append(b)
@@ -27,7 +36,9 @@ class Gui(object):
             root.update()
 
         def setstate(state):
-            def temp():  # Returns function using closure to set current state and exit loop
+            def temp():
+                # Returns function using closure to set current state and exit
+                # loop
                 self._state = state
                 self._root.destroy()
             return temp
@@ -36,8 +47,7 @@ class Gui(object):
             menu.destroy()
             self.listrecords()
 
-        # addMenuButton(setstate('START'), text='Start')
-        addMenuButton(setstate('COMPARE'), text='Record')
+        addMenuButton(setstate('RECORD'), text='Record')
         addMenuButton(compare, text='Compare')
 
     def restart(self):
@@ -64,7 +74,6 @@ class Gui(object):
             b.pack(side=LEFT)
 
         records = self.get_records()
-        # [('file handle', 'Assigned Name')]
         addRecord(None, None)
         for record in records:
             addRecord(*record)
@@ -80,17 +89,14 @@ class Gui(object):
             self.run()
             return
         if self._state == 'RECORD':
-            game = GameInterface(callback=self.restart)
+            game = gameinterface.GameInterface(callback=self.restart)
             game.run()
         elif self._state == 'COMPARE':
-            game = GameInterface(callback=self.restart,
-                                 filename=self._recording, mode='WAITING')
+            game = gameinterface.GameInterface(callback=self.restart,
+                                               filename=self._recording,
+                                               mode='WAITING')
             game.run()
 
     def run(self):
         self._root.mainloop()
         self.gui_close()
-
-if __name__ == '__main__':
-    g = Gui()
-    g.run()
