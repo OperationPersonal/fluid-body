@@ -8,7 +8,8 @@ ANALYSIS_WIDTH = 400
 
 FLIP = [4, 12]
 D_FLIP = [5, 6, 7, 13, 14, 15, 21, 22]
-# FLIP = []
+
+_LOGGER = logging.getLogger('analysis')
 
 
 class AnalysisStream(object):
@@ -46,7 +47,6 @@ class AnalysisStream(object):
 
         lines = []
         for start, end in traverse():
-            logging.info('{}, {}'.format(start, end))
             if end in D_FLIP:
                 x1 = self.flip_coord(outline[start][0], mid)
                 x2 = self.flip_coord(outline[end][0], mid)

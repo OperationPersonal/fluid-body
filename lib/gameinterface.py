@@ -19,6 +19,8 @@ STATE_VIEW = 1
 STATE_RECORD = 0
 STATE_COMPARE = 'COMPARE'
 
+_LOGGER = logging.getLogger('gameinterface')
+
 from kinectwrapper import KinectStream, traverse
 from analysis import AnalysisStream
 
@@ -28,32 +30,26 @@ ANALYSIS_WIDTH = 600
 class GameInterface(object):
 
     def __init__(self, callback=lambda: None, mode=STATE_VIEW, filename=None):
-        logging.info('Started interface')
+        _LOGGER.info('Started interface')
 
         game.init()
         self._infoObject = game.display.Info()
-        screen = self._screen = game.display.set_mode((self._infoObject.current_w >> 1, self._infoObject.current_h >> 1),
-                                                      game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
+        self._kinect = KinectStream()
+        self._analysis = AnalysisStream(self._kinect, filename)
+        self._screen = game.display.set_mode((self._infoObject.current_w >> 1, self._infoObject.current_h >> 1),
+                                             game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
+        _LOGGER.debug('Screen width: {}, Screen height: {}'.format(
+            self._infoObject.current_w >> 1, self._infoObject.current_h >> 1))
         game.display.set_caption('Fluid Body Analyser')
         self._clock = game.time.Clock()
         self._callback = callback
-        self._kinect = KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc(
         ).Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
-        self._analysis = AnalysisStream(self._kinect, filename)
         self._state = mode
-        self._currfile = filename
         self._bodies = []
         self._pause = False
-
-    def setBackgroundColor(self, background=(255, 255, 255)):
-        # self._background_color = background
-        # self._screen.fill(game.Color(*background))
-        pass
-
-    def setFileName(self, filename):
-        self._currfile = filename
+        self._audio = AudioInterface(self)
 
     def quit(self):
         game.quit()
@@ -74,12 +70,11 @@ class GameInterface(object):
             self._surface, (self._screen.get_width(), scaled_height))
         self._screen.blit(draw_surface, (0, 0))
         if self._state == STATE_COMPARE:
-            # print('bltting analysis')
             analysis_surface = self._analysis.getSurface()
             draw_analysis = game.transform.scale(
                 analysis_surface, (analysis_surface.get_width(), scaled_height))
             self._screen.blit(
-                draw_analysis, (self._screen.get_width() - analysis_surface.get_width(), 0))
+                draw_analysis, (draw_surface.get_width(), 0))
         draw_surface = draw_analysis = analysis_surface = None
         game.display.update()
         game.display.flip()
@@ -104,7 +99,7 @@ class GameInterface(object):
                                        game.color.THECOLORS['black'])
                 surface.blit(jointnum, map(lambda c: c - 20, end))
             except Exception as e:
-                logging.warning(e)
+                _LOGGER.warning(e)
 
     def run(self):
         x = 250
@@ -112,8 +107,7 @@ class GameInterface(object):
         screen, kinect, surface, analysis = self._screen, self._kinect, self._surface, self._analysis
         body = None
 
-        audio = AudioInterface(self)
-        stop_listening = audio.listen()
+        stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
@@ -126,15 +120,22 @@ class GameInterface(object):
                     if event.key == game.K_RETURN:
                         self._state = (self._state + 1) % 2
                         if self._state == STATE_RECORD:
+                            _LOGGER.info('Start recording')
                             kinect.initRecord()
                     elif event.key == game.K_SPACE:
                         if kinect:
                             for body in self._bodies:
                                 if body.is_tracked:
-                                    logging.debug('Initializing body lengths')
+                                    _LOGGER.debug('Initializing body lengths')
                                     kinect.initialize(body)
                     elif event.key == game.K_p:
+                        if self._pause:
+                            _LOGGER.info('Unpause')
+                        else:
+                            _LOGGER.info('Pause')
                         self._pause = not self._pause
+                    elif event.key == game.K_m:
+                        self._audio.mute()
             if self._pause:
                 continue
 
@@ -153,10 +154,8 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
-                    # print('analyzing')
                     analysis.prepSurface()
                     lines = analysis.getBody(body)
-                    # print(lines)
                     self.drawLines(analysis.getBody(
                         body), analysis._analysis_surface, GAME_COLORS[count])
 

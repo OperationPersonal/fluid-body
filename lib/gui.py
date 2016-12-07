@@ -2,6 +2,8 @@ from Tkinter import *
 from gameinterface import GameInterface
 import os
 import logging
+
+
 class Gui(object):
 
     def __init__(self):
@@ -65,12 +67,9 @@ class Gui(object):
         # [('file handle', 'Assigned Name')]
         addRecord(None, None)
         for record in records:
-            print(record)
             addRecord(*record)
 
     def get_records(self):
-        for f in os.listdir('./data'):
-            print f
         return list((f, f) for f in os.listdir('./data') if f != '.gitignore')
 
     def gui_close(self):
@@ -84,7 +83,8 @@ class Gui(object):
             game = GameInterface(callback=self.restart)
             game.run()
         elif self._state == 'COMPARE':
-            game = GameInterface(callback=self.restart, filename=self._recording, mode='COMPARE')
+            game = GameInterface(callback=self.restart,
+                                 filename=self._recording, mode='COMPARE')
             game.run()
 
     def run(self):
