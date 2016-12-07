@@ -21,6 +21,9 @@ class AnalysisStream(object):
         if filename:
             self.openAnalysis(filename)
 
+    def get_width(self):
+        return ANALYSIS_WIDTH
+
     def openAnalysis(self, filename=None):
         self._file_handle = csv.reader(open("data/" + filename, "r"),
                                        delimiter=';', skipinitialspace=True) if filename else None
@@ -45,20 +48,20 @@ class AnalysisStream(object):
                 outline[end_limb] = self.get_coords(
                     outline[start_limb], frame[end_limb], length)
 
-        lines = []
-        for start, end in traverse():
-            if end in D_FLIP:
-                x1 = self.flip_coord(outline[start][0], mid)
-                x2 = self.flip_coord(outline[end][0], mid)
-            elif end in FLIP:
-                x1 = outline[start][0]
-                x2 = self.flip_coord(outline[end][0], mid)
-            else:
-                x1 = outline[start][0]
-                x2 = outline[end][0]
-            lines.append(
-                ((x1, outline[start][1]), (x2, outline[end][1])))
-        return lines
+            lines = []
+            for start, end in traverse():
+                if end in D_FLIP:
+                    x1 = self.flip_coord(outline[start][0], mid)
+                    x2 = self.flip_coord(outline[end][0], mid)
+                elif end in FLIP:
+                    x1 = outline[start][0]
+                    x2 = self.flip_coord(outline[end][0], mid)
+                else:
+                    x1 = outline[start][0]
+                    x2 = outline[end][0]
+                lines.append(
+                    ((x1, outline[start][1]), (x2, outline[end][1])))
+            return lines
 
     def getSurface(self):
         return self._analysis_surface

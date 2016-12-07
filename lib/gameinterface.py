@@ -25,8 +25,6 @@ _LOGGER = logging.getLogger('gameinterface')
 from kinectwrapper import KinectStream, traverse
 from analysis import AnalysisStream
 
-ANALYSIS_WIDTH = 600
-
 
 class GameInterface(object):
 
@@ -35,19 +33,24 @@ class GameInterface(object):
 
         game.init()
         self._infoObject = game.display.Info()
+        self._state = mode
         self._kinect = KinectStream()
         self._analysis = AnalysisStream(self._kinect, filename)
-        self._screen = game.display.set_mode((self._infoObject.current_w >> 1, self._infoObject.current_h >> 1),
+        self._analysis_width = self._analysis.get_width()
+        screen_width = self._infoObject.current_w >> 1
+        screen_height = self._infoObject.current_h >> 1
+        if self._state == STATE_COMPARE or self._state == STATE_WAITING:
+            screen_width += self._analysis_width
+        self._screen = game.display.set_mode((screen_width, screen_height),
                                              game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
         _LOGGER.debug('Screen width: {}, Screen height: {}'.format(
-            self._infoObject.current_w >> 1, self._infoObject.current_h >> 1))
+            self._screen.get_width(), self._screen.get_height()))
         game.display.set_caption('Fluid Body Analyser')
         self._clock = game.time.Clock()
         self._callback = callback
         self._surface = game.Surface((self._kinect.colorFrameDesc(
         ).Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._bodies = None
-        self._state = mode
         self._bodies = []
         self._pause = False
         self._audio = AudioInterface(self)
@@ -65,12 +68,14 @@ class GameInterface(object):
 
     def surfaceToScreen(self):
         scale = float(self._surface.get_height()) / self._surface.get_width()
-        scaled_height = int(scale * self._screen.get_width())
-
+        real_screen_w = self._screen.get_width()
+        if self._state == STATE_WAITING or self._state == STATE_COMPARE:
+            real_screen_w -= self._analysis_width
+        scaled_height = int(scale * (real_screen_w))
         draw_surface = game.transform.scale(
-            self._surface, (self._screen.get_width(), scaled_height))
+            self._surface, (real_screen_w, scaled_height))
         self._screen.blit(draw_surface, (0, 0))
-        if self._state == STATE_COMPARE:
+        if self._state == STATE_WAITING or self._state == STATE_COMPARE:
             analysis_surface = self._analysis.getSurface()
             draw_analysis = game.transform.scale(
                 analysis_surface, (analysis_surface.get_width(), scaled_height))
@@ -100,7 +105,7 @@ class GameInterface(object):
                                        game.color.THECOLORS['black'])
                 surface.blit(jointnum, map(lambda c: c - 20, end))
             except Exception as e:
-                _LOGGER.warning(e)
+                pass
 
     def run(self):
         x = 250
