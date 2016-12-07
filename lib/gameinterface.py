@@ -114,7 +114,6 @@ class GameInterface(object):
 
     def run(self):
         screen, kinect, surface, analysis = self._screen, self._kinect, self._surface, self._analysis
-        # body = None
         stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
