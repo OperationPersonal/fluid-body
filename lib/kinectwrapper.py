@@ -34,6 +34,10 @@ class KinectStream:
 
     def close(self):
         self._kinect.close()
+        try:
+            self._file_handle.close()
+        except:
+            pass
 
     def colorFrameDesc(self):
         return self._kinect.color_frame_desc
@@ -89,6 +93,7 @@ class KinectStream:
             state = (joints[joint[0]].TrackingState,
                      joints[joint[1]].TrackingState)
             if state[0] == TrackingState_NotTracked or state[1] == TrackingState_NotTracked or state == (TrackingState_Inferred, TrackingState_Inferred):
+                yield (None, None)
                 continue
             point = (points[joint[0]], points[joint[1]])
             # if joint[0] == 8 and joint[1] == 9:
@@ -116,10 +121,18 @@ class KinectStream:
     def initRecord(self):
         self._file_handle = open('./data/' + str(time.time()), "wb+")
 
+    # def recordFrame(self, body):
+    #     angles = (str(self.orientationToDegrees(
+    #         body.joint_orientations[i].Orientation)) for i in range(25))
+    #     self._file_handle.write(';'.join(angles) + '\n')
+
     def recordFrame(self, body):
-        angles = (str(self.orientationToDegrees(
+        angles = (str(self.orientationToQuat(
             body.joint_orientations[i].Orientation)) for i in range(25))
         self._file_handle.write(';'.join(angles) + '\n')
+
+    def orientationToQuat(self, orientation):
+        return [orientation.x, orientation.y, orientation.z, orientation.w]
 
     def orientationToDegrees(self, orientation):
         if (orientation.x * orientation.y + orientation.z * orientation.w == 0.5):

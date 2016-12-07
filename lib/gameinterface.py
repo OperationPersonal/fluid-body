@@ -45,6 +45,7 @@ class GameInterface(object):
         self._state = mode
         self._currfile = filename
         self._bodies = []
+        self._pause = False
 
     def setBackgroundColor(self, background=(255, 255, 255)):
         # self._background_color = background
@@ -83,24 +84,27 @@ class GameInterface(object):
         game.display.update()
         game.display.flip()
 
-    def drawLines(self, lines, surface, color=None, width=8, printer=False):
+    def drawLines(self, lines, surface, color=None, width=8):
         color = random.choice(GAME_COLORS) if not color else color
         if not lines:
             return
         lines = list(lines)
         if not lines[0]:
             return
-        if printer:
-            print(lines)
-        for (start, end) in lines:
+        font = game.font.Font(None, 60)
+        traversal = list(traverse())
+        for index, (start, end) in enumerate(lines):
+            if start is None or end is None:
+                continue
             try:
                 game.draw.line(surface, color, start, end, width)
+                game.draw.circle(surface, color, map(
+                    lambda i: int(i), end), 20, 0)
+                jointnum = font.render(str(traversal[index][1]), 0,
+                                       game.color.THECOLORS['black'])
+                surface.blit(jointnum, map(lambda c: c - 20, end))
             except Exception as e:
-                if printer:
-                    print(e)
-            else:
-                if printer:
-                    print ('drew line ' + str(start) + str(end))
+                logging.warning(e)
 
     def run(self):
         x = 250
@@ -129,6 +133,10 @@ class GameInterface(object):
                                 if body.is_tracked:
                                     logging.debug('Initializing body lengths')
                                     kinect.initialize(body)
+                    elif event.key == game.K_p:
+                        self._pause = not self._pause
+            if self._pause:
+                continue
 
             if kinect:
                 if kinect.hasNewColorFrame():  # must draw camera frame first or else the body gets covered
@@ -150,7 +158,7 @@ class GameInterface(object):
                     lines = analysis.getBody(body)
                     # print(lines)
                     self.drawLines(analysis.getBody(
-                        body), analysis._analysis_surface, GAME_COLORS[count], printer=False)
+                        body), analysis._analysis_surface, GAME_COLORS[count])
 
             self.surfaceToScreen()
 

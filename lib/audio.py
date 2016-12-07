@@ -11,6 +11,7 @@ class AudioInterface(object):
     def __init__(self, interface):
         self._engine = pyttsx.init()
         self._interface = interface
+        self._mute = False
 
     def speak(self, text):
         self._engine.say(text)
