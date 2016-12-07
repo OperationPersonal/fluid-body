@@ -15,8 +15,9 @@ GAME_COLORS = [game.color.THECOLORS["red"],
                game.color.THECOLORS["yellow"],
                game.color.THECOLORS["violet"]]
 
-STATE_VIEW = 1
-STATE_RECORD = 0
+STATE_VIEW = 'VIEW'
+STATE_RECORD = 'RECORD'
+STATE_WAITING = 'WAITING'
 STATE_COMPARE = 'COMPARE'
 
 from kinectwrapper import KinectStream, traverse
@@ -114,6 +115,7 @@ class GameInterface(object):
 
         audio = AudioInterface(self)
         stop_listening = audio.listen()
+
         while True:
             for event in game.event.get():
                 if event.type == game.QUIT:
@@ -124,9 +126,13 @@ class GameInterface(object):
                                                          game.HWSURFACE | game.DOUBLEBUF | game.RESIZABLE, 32)
                 elif event.type == game.KEYDOWN:
                     if event.key == game.K_RETURN:
-                        self._state = (self._state + 1) % 2
-                        if self._state == STATE_RECORD:
-                            kinect.initRecord()
+                        if self._state == STATE_RECORD or self._state == STATE_VIEW:
+                            self._state = STATE_RECORD if self._state == STATE_VIEW else STATE_VIEW
+                            if self._state == STATE_RECORD:
+                                kinect.initRecord()
+                        else:
+                            self._state = STATE_COMPARE if self._state == STATE_WAITING else STATE_WAITING
+
                     elif event.key == game.K_SPACE:
                         if kinect:
                             for body in self._bodies:
@@ -159,6 +165,8 @@ class GameInterface(object):
                     # print(lines)
                     self.drawLines(analysis.getBody(
                         body), analysis._analysis_surface, GAME_COLORS[count])
+                elif self._state == STATE_WAITING:
+                    analysis.prepSurface()
 
             self.surfaceToScreen()
 
