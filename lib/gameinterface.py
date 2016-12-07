@@ -56,6 +56,11 @@ class GameInterface(object):
         self._audio = AudioInterface(self)
 
     def quit(self):
+        try:
+            self._analysis.close()
+            self._kinect.close()
+        except:
+            pass
         game.quit()
         self._callback()
 
@@ -108,11 +113,8 @@ class GameInterface(object):
                 pass
 
     def run(self):
-        x = 250
-        y = 250
         screen, kinect, surface, analysis = self._screen, self._kinect, self._surface, self._analysis
-        body = None
-
+        # body = None
         stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
@@ -134,7 +136,7 @@ class GameInterface(object):
                         if kinect:
                             for body in self._bodies:
                                 if body.is_tracked:
-                                    _LOGGER.debug('Initializing body lengths')
+                                    _LOGGER.info('Initializing body lengths')
                                     kinect.initialize(body)
                     elif event.key == game.K_p:
                         if self._pause:

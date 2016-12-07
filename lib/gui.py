@@ -36,8 +36,8 @@ class Gui(object):
             menu.destroy()
             self.listrecords()
 
-        addMenuButton(setstate('START'), text='Start')
-        addMenuButton(setstate('RECORD'), text='Record')
+        # addMenuButton(setstate('START'), text='Start')
+        addMenuButton(setstate('COMPARE'), text='Record')
         addMenuButton(compare, text='Compare')
 
     def restart(self):
@@ -84,7 +84,7 @@ class Gui(object):
             game.run()
         elif self._state == 'COMPARE':
             game = GameInterface(callback=self.restart,
-                                 filename=self._recording, mode='COMPARE')
+                                 filename=self._recording, mode='WAITING')
             game.run()
 
     def run(self):

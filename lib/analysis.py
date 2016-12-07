@@ -28,6 +28,13 @@ class AnalysisStream(object):
         self._file_handle = csv.reader(open("data/" + filename, "r"),
                                        delimiter=';', skipinitialspace=True) if filename else None
 
+    def close(self):
+        try:
+            self._kinect.close()
+            self._file_handle.close()
+        except:
+            pass
+
     def flip_coord(self, coord, mid):
         return 2 * mid - coord
 

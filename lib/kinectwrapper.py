@@ -109,6 +109,7 @@ class KinectStream:
                 'From joint{} to joint{} with length {}'.format(joint[0], joint[1], length))
 
     def initRecord(self):
+        _LOGGER.info('Start recording')
         self._file_handle = open('./data/' + str(time.time()), "wb+")
 
     def recordFrame(self, body):
