@@ -6,7 +6,7 @@ import ctypes
 import logging
 
 import kinectwrapper as kinect
-import analysis
+import analysis2 as analysis
 import audio
 
 """Main game interface. Draws surfaces and contains main loop"""
@@ -170,7 +170,7 @@ class GameInterface(object):
                 self._audio.mute()
             elif event.key == game.K_r:
                 if state_compare or state_waiting:
-                    self._analysis.resetFrame()
+                    self._analysis.reset_frame()
             elif event.key == game.K_UP:
                 self._speed = self._speed - 1 if self. _speed > 1 else 1
             elif event.key == game.K_DOWN:
@@ -185,6 +185,8 @@ class GameInterface(object):
         screen, kinect = self._screen, self._kinect,
         surface, analysis = self._surface, self._analysis
 
+        analyze_body = None
+
         self._stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
@@ -194,16 +196,15 @@ class GameInterface(object):
                 continue
 
             if kinect:
-                if kinect.hasNewColorFrame():
-                    # must draw camera frame first or else the body gets
-                    # covered
+                if kinect.hasNewColorFrame():  # Must go first
                     self.drawCameraInput(kinect.getLastColorFrame(), surface)
                 if kinect.hasNewBodyFrame():
                     self._bodies = kinect.getLastBodyFrame().bodies
 
-            # if any(body.is_tracked for body in self._bodies):
-            #     self._analysisframe = analysis.getBody
-            # print bodyFrame
+            # Set analysis callback
+            analyze_body = analysis.get_color_space_frame()if any(
+                b.is_tracked for b in self._bodies) else analyze_body
+
             for count, body in enumerate(self._bodies):
                 if not body.is_tracked:
                     continue
@@ -212,10 +213,10 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
-                    # if self._analysisframe:
-                    self.drawLines(
-                        analysis.getBody(body, self._speed),
-                        self._surface, GAME_COLORS[0])
+                    if analyze_body:
+                        lines = analyze_body(body)
+                        _LOGGER.debug('Analysis lines {}'.format(lines))
+                        self.drawLines(lines, self._surface, GAME_COLORS[0])
 
             self.surfaceToScreen()
 
