@@ -54,12 +54,41 @@ class AnalysisStream(object):
 
         return 2 * mid - coord
 
-    def getBody(self, body):
+    def getBody(self, body, speed=4):
         """Iterates over traverse and frame to return the next corresponding frame of the analysis"""
 
-        if not self._frames:
-            yield (None, None)
-        frame = self.getNextFrame()
+        try:
+            return self._frames.next()
+        except:
+            self._frames= self.generateNextFrames(body, speed)
+            return self._frames.next()
+
+        # frame = self.getNextFrames()
+        # outline = [None for i in range(25)]
+        # if frame:
+        #     outline[0] = PyKinectV2._CameraSpacePoint(
+        #         body.joints[0].Position.x, body.joints[0].Position.y,
+        #         body.joints[0].Position.z)
+        #
+        #     color_space = [None for i in range(25)]
+        #     color_space[0] = self._camera_to_color(outline[0])
+        #     for count, (start_limb, end_limb) in enumerate(kinect.traverse()):
+        #         if not outline[start_limb]:
+        #             continue
+        #         length = self._kinect.getBoneLength(count)
+        #         coords = self.get_coords(outline[start_limb],
+        #                                  frame[end_limb], length)
+        #         outline[end_limb] = PyKinectV2._CameraSpacePoint(*coords)
+        #         color_space[end_limb] = self._camera_to_color(outline[
+        #                                                       end_limb])
+        #
+        #     for start, end in kinect.traverse():
+        #         yield ((color_space[start].x, color_space[start].y),
+        #                (color_space[end].x, color_space[end].y))
+        # else:
+        #     yield (None, None)
+
+    def _get_points(self, frame, body):
         outline = [None for i in range(25)]
         if frame:
             outline[0] = PyKinectV2._CameraSpacePoint(
@@ -81,8 +110,24 @@ class AnalysisStream(object):
             for start, end in kinect.traverse():
                 yield ((color_space[start].x, color_space[start].y),
                        (color_space[end].x, color_space[end].y))
-        else:
-            yield (None, None)
+
+    def generateNextFrames(self, body, speed=4, precision=2):
+        frames = list(self.getNextFrames(2))
+        if len(frames) == 1:
+            yield self._get_points(frames[0], body)
+            return
+        for i in range(len(frames) - 1):
+            curr, ref = frames[i], frames[i + 1]
+
+            curr_points, ref_points = self._get_points(curr, body), self._get_points(ref, body)
+
+            for s in speed:
+                frame = []
+                for (x1, y1), (x2, y2) in zip(curr, ref):
+                    dx = s * (x2 - x1) / speed
+                    dy = s * (y2 - y1) / speed
+                    frame.append((x1 + dx, y1 + dy))
+                yield frame
 
     def getSurface(self):
         """Wrapper for the surface contained"""
@@ -117,11 +162,11 @@ class AnalysisStream(object):
     def frameBack(self):
         self.adjustFramePos(position - gameinterface.FPS)
 
-    def getNextFrame(self):
+    def getNextFrames(self, num=1):
         try:
-            new_frame = self._frames[self._curr]
-            self._curr += 1
-            return list(eval(joint) for joint in new_frame)
+            for i in range(num):
+                yield list(eval(j) for j in self._frames[self._curr])
+                self._curr += 1
         except:
             self._file_handle = None
             return None
