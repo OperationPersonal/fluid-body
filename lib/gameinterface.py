@@ -45,11 +45,8 @@ class GameInterface(object):
         self._state = mode
         self._kinect = kinect.KinectStream()
         self._analysis = analysis.AnalysisStream(self._kinect, filename)
-        self._analysis_width = self._analysis.get_width()
         screen_width = self._infoObject.current_w >> 1
         screen_height = (self._infoObject.current_h >> 1) + STATUS_HEIGHT
-        if self._state == STATE_COMPARE or self._state == STATE_WAITING:
-            screen_width += self._analysis_width
         self._screen = game.display.set_mode((screen_width,
                                               screen_height),
                                              game.HWSURFACE |
@@ -88,22 +85,13 @@ class GameInterface(object):
     def surfaceToScreen(self):
         scale = float(self._surface.get_height()) / self._surface.get_width()
         real_screen_w = self._screen.get_width()
-        if self._state == STATE_WAITING or self._state == STATE_COMPARE:
-            real_screen_w -= self._analysis_width
         scaled_height = int(scale * (real_screen_w))
         draw_surface = game.transform.scale(
             self._surface, (real_screen_w, scaled_height))
         self._screen.blit(draw_surface, (0, 0))
-        if self._state == STATE_WAITING or self._state == STATE_COMPARE:
-            analysis_surface = self._analysis.getSurface()
-            draw_analysis = game.transform.scale(
-                analysis_surface, (analysis_surface.get_width(),
-                                   scaled_height))
-            self._screen.blit(
-                draw_analysis, (draw_surface.get_width(), 0))
         self._screen.blit(self._status_bar,
                           (0, self._screen.get_height() - STATUS_HEIGHT))
-        draw_surface = draw_analysis = analysis_surface = None
+        draw_surface = analysis_surface = None
         game.display.update()
         game.display.flip()
 
@@ -131,7 +119,7 @@ class GameInterface(object):
 
     def event_trigger(self, event):
         if event.type == game.QUIT:
-            # stop_listening()
+            self._stop_listening()
             self.quit()
         elif event.type == game.VIDEORESIZE:  # window resized
             self._screen = game.display.set_mode(
@@ -142,6 +130,7 @@ class GameInterface(object):
             state_record = self._state == STATE_RECORD
             state_view = self._state == STATE_VIEW
             state_waiting = self._state == STATE_WAITING
+            state_compare = self._state == STATE_COMPARE
             if event.key == game.K_RETURN:
                 if state_record or state_view:
                     if state_view:
@@ -164,12 +153,15 @@ class GameInterface(object):
                 self._pause = not self._pause
             elif event.key == game.K_m:
                 self._audio.mute()
+            elif event.key == game.K_r:
+                if state_compare or state_waiting:
+                    self._analysis.resetFrame()
 
     def run(self):
         screen, kinect = self._screen, self._kinect
         surface, analysis = self._surface, self._analysis
 
-        # stop_listening = self._audio.listen()
+        self._stop_listening = self._audio.listen()
         while True:
             for event in game.event.get():
                 self.event_trigger(event)
@@ -194,12 +186,9 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
-                    analysis.prepSurface()
                     self.drawLines(
                         analysis.getBody(body),
-                        analysis._analysis_surface, GAME_COLORS[0])
-                elif self._state == STATE_WAITING:
-                    analysis.prepSurface()
+                        self._surface, GAME_COLORS[0])
 
             self.surfaceToScreen()
 

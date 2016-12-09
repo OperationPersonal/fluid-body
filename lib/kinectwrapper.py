@@ -16,8 +16,6 @@ __author__ = "Leon Chou and Roy Xu"
 JOINT_HIERARCHY = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
     2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
-BONE_SCALE = 700
-
 _LOGGER = logging.getLogger('kinect')
 
 JOINTS = ['SpineBase', 'SpineMid', 'Neck', 'Head', 'ShoulderLeft', 'ElbowLeft',
@@ -104,7 +102,7 @@ class KinectStream:
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
             length = self.calc_bone_length(
-                joints[joint[0]], joints[joint[1]]) * BONE_SCALE
+                joints[joint[0]], joints[joint[1]])
             self._bone_lengths[count] = length
             _LOGGER.debug(
                 'From {} to {} with length {}'.format(joint[0],
@@ -127,4 +125,4 @@ class KinectStream:
         self._file_handle.write(';'.join(angles) + '\n')
 
     def orientationToQuat(self, orientation):
-        return [orientation.x, orientation.y, orientation.z, orientation.w]
+        return [orientation.w, orientation.x, orientation.y, orientation.z]

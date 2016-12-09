@@ -10,6 +10,9 @@ __author__ = "Leon Chou and Roy Xu"
 """Handles audio. Speech recognition and output"""
 
 _LOGGER = logging.getLogger('audio')
+VOICE = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens'
+VOICE_F = VOICE + '\TTS_MS_EN - US_ZIRA_11.0'
+VOICE_M = VOICE + '\TTS_MS_EN-US_DAVID_11.0'
 
 
 class AudioInterface(object):
@@ -18,6 +21,8 @@ class AudioInterface(object):
         self._engine = pyttsx.init()
         self._interface = interface
         self._mute = False
+        self._engine.setProperty(
+            'voice', VOICE_F)
 
     def speak(self, text):
         if not self._mute:
@@ -41,11 +46,8 @@ class AudioInterface(object):
 
     def parse_audio(self, recognizer, audio):
         try:
-            # phrase = recognizer.recognize_sphinx(
-            #     audio, keyword_entries=[('start', 1), ('stop', 1)])
             _LOGGER.info('Recognized phrase')
             phrase = recognizer.recognize_google(audio)
-            self._interface._state = speech_recognition.STATE_COMPARE
             if 'start' in phrase:
                 _LOGGER.info('Starting analysis')
                 self.speak('started analysis')
