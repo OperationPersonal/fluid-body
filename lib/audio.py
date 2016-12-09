@@ -5,14 +5,16 @@ import speech_recognition
 
 import logging
 
+import gameinterface
+
 __author__ = "Leon Chou and Roy Xu"
 
 """Handles audio. Speech recognition and output"""
 
 _LOGGER = logging.getLogger('audio')
-VOICE = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens'
-VOICE_F = VOICE + '\TTS_MS_EN - US_ZIRA_11.0'
-VOICE_M = VOICE + '\TTS_MS_EN-US_DAVID_11.0'
+VOICE = 'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\\'
+VOICE_F = VOICE + 'TTS_MS_EN-US_ZIRA_11.0'
+VOICE_M = VOICE + 'TTS_MS_EN-US_DAVID_11.0'
 
 
 class AudioInterface(object):
@@ -46,13 +48,18 @@ class AudioInterface(object):
 
     def parse_audio(self, recognizer, audio):
         try:
-            _LOGGER.info('Recognized phrase')
             phrase = recognizer.recognize_google(audio)
+            _LOGGER.info('Recognized {}'.format(phrase))
             if 'start' in phrase:
                 _LOGGER.info('Starting analysis')
                 self.speak('started analysis')
-            else:
-                self.speak(phrase)
+                self._interface._state = gameinterface.STATE_COMPARE
+            elif 'stop' in phrase:
+                _LOGGER.info('Stopping analysis')
+                self.speak('stopping analysis')
+                self._interface._state = gameinterface.STATE_WAITING
+            elif 'hello' in phrase:
+                self.speak('hello')
         except speech_recognition.UnknownValueError:
             _LOGGER.info('Unrecognized phrase')
             # self.speak("I could not understand you")
