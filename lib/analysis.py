@@ -20,6 +20,7 @@ _LOGGER = logging.getLogger('analysis')
 
 
 class AnalysisStream(object):
+    """Wrapper class for the file reading and calculating of degrees to current body"""
 
     def __init__(self, kinect, filename=None):
         self._kinect = kinect  # KinectStream
@@ -30,9 +31,11 @@ class AnalysisStream(object):
         self._curr = 0
 
     def get_width(self):
+        """Wrapper for the constant ANALYSIS_WIDTH"""
         return ANALYSIS_WIDTH
 
     def openAnalysis(self, filename=None):
+        """Creates the file handle for filename within the class instance"""
         if filename:
             file_handle = csv.reader(
                 open("data/" + filename, "r"), delimiter=';',
@@ -42,15 +45,21 @@ class AnalysisStream(object):
             self._frames = None
 
     def close(self):
+        """Closes the kinect and the file handle cleanly"""
+
         try:
             self._kinect.close()
         except:
             pass
 
     def flip_coord(self, coord, mid):
+        """Flips coordinate tuple by a point"""
+
         return 2 * mid - coord
 
     def getBody(self, body):
+        """Iterates over traverse and frame to return the next corresponding frame of the analysis"""
+
         if not self._frames:
             return None
         surface = self._analysis_surface
@@ -83,15 +92,20 @@ class AnalysisStream(object):
             return lines
 
     def getSurface(self):
+        """Wrapper for the surface contained"""
         return self._analysis_surface
 
     def quaternion_multiply(self, q, r):
+        """vector multiplication to rotate it"""
         return [r[0] * q[0] - r[1] * q[1] - r[2] * q[2] - r[3] * q[3],
                 r[0] * q[1] + r[1] * q[0] - r[2] * q[3] + r[3] * q[2],
                 r[0] * q[2] + r[1] * q[3] + r[2] * q[0] - r[3] * q[1],
                 r[0] * q[3] - r[1] * q[2] + r[2] * q[1] + r[3] * q[0]]
 
     def get_coords(self, start, quat, length):
+        """Takes a previous coordinate, a quaternion, and a scalar
+        returns a tuple representing the initial 'sky'vector multiplied by the quat
+        with length = length"""
         r = [0, 0, length, 0]
         q_conj = [quat[0], -1 * quat[1], -1 * quat[2], -1 * quat[3]]
         return [x + y for x, y in zip(self.quaternion_multiply(

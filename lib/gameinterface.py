@@ -65,6 +65,9 @@ class GameInterface(object):
         self._audio = audio.AudioInterface(self)
 
     def quit(self):
+        """Closes the game interface cleanly without
+        ripping any connections or anything dangling"""
+
         try:
             self._analysis.close()
             self._kinect.close()
@@ -74,6 +77,9 @@ class GameInterface(object):
         self._callback()
 
     def drawCameraInput(self, frame, surface):
+        """Takes the kinect's camera output (colorframe) and uses c's
+        memmove to throw it onto the screen surface's buffer"""
+
         surface.lock()
         addr = self._kinect.surfaceAsArray(surface.get_buffer())
         ctypes.memmove(addr, frame.ctypes.data, frame.size)
@@ -81,6 +87,9 @@ class GameInterface(object):
         surface.unlock()
 
     def surfaceToScreen(self):
+        """Takes the current screen that we were drawing on and the
+        analysis screen and blits it onto the game screen"""
+
         scale = float(self._surface.get_height()) / self._surface.get_width()
         real_screen_w = self._screen.get_width()
         if self._state == STATE_WAITING or self._state == STATE_COMPARE:
@@ -101,6 +110,9 @@ class GameInterface(object):
         game.display.flip()
 
     def drawLines(self, lines, surface, color=None, width=8):
+        """Takes a list of tuples, each containing two endpoints
+        of a line segment to draw on a 2d surface"""
+
         color = random.choice(GAME_COLORS) if not color else color
         if not lines:
             return
@@ -123,6 +135,10 @@ class GameInterface(object):
                 pass
 
     def run(self):
+        """Main game runtime of the code, when this process stops it should quit,
+        Checks pygame events, can be paused using 'P', muted using 'M'
+        Toggles current state using 'return'"""
+        
         screen, kinect = self._screen, self._kinect,
         surface, analysis = self._surface, self._analysis
 
