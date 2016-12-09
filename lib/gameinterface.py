@@ -6,7 +6,7 @@ import ctypes
 import logging
 
 import kinectwrapper as kinect
-import analysis
+import analysis2 as analysis
 import audio
 
 """Main game interface. Draws surfaces and contains main loop"""
@@ -167,7 +167,7 @@ class GameInterface(object):
                 self._audio.mute()
             elif event.key == game.K_r:
                 if state_compare or state_waiting:
-                    self._analysis.resetFrame()
+                    self._analysis.reset_frame()
 
     def run(self):
         """Main game runtime of the code, when this process stops it should quit,
@@ -176,6 +176,8 @@ class GameInterface(object):
 
         screen, kinect = self._screen, self._kinect,
         surface, analysis = self._surface, self._analysis
+
+        analyze_body = None
 
         self._stop_listening = self._audio.listen()
         while True:
@@ -186,14 +188,14 @@ class GameInterface(object):
                 continue
 
             if kinect:
-                if kinect.hasNewColorFrame():
-                    # must draw camera frame first or else the body gets
-                    # covered
+                if kinect.hasNewColorFrame():# Must go first
                     self.drawCameraInput(kinect.getLastColorFrame(), surface)
                 if kinect.hasNewBodyFrame():
                     self._bodies = kinect.getLastBodyFrame().bodies
 
-            # print bodyFrame
+            # Set analysis callback
+            analyze_body = analysis.get_color_space_frame()if any(b.is_tracked for b in self._bodies) else analyze_body
+
             for count, body in enumerate(self._bodies):
                 if not body.is_tracked:
                     continue
@@ -202,9 +204,10 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
-                    self.drawLines(
-                        analysis.getBody(body),
-                        self._surface, GAME_COLORS[0])
+                    if analyze_body:
+                        lines = analyze_body(body)
+                        _LOGGER.debug('Analysis lines {}'.format(lines))
+                        self.drawLines(lines, self._surface, GAME_COLORS[0])
 
             self.surfaceToScreen()
 
