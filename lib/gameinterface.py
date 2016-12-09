@@ -37,6 +37,8 @@ FPS = 30
 class GameInterface(object):
     """Wrapper for game interface"""
 
+    MAX_SPEED = 5
+
     def __init__(self, callback=lambda: None, mode=STATE_VIEW, filename=None):
         _LOGGER.info('Started interface')
 
@@ -52,7 +54,7 @@ class GameInterface(object):
                                              game.HWSURFACE |
                                              game.DOUBLEBUF |
                                              game.RESIZABLE, 32)
-        _LOGGER.debug('Screen width: {}, Screen height: {}'.format(
+        _LOGGER.info('Screen width: {}, Screen height: {}'.format(
             self._screen.get_width(), self._screen.get_height()))
         self._status_bar = game.Surface(
             (self._screen.get_width(), STATUS_HEIGHT))
@@ -65,6 +67,7 @@ class GameInterface(object):
         self._bodies = []
         self._pause = False
         self._audio = audio.AudioInterface(self)
+        self._speed = 5
 
     def quit(self):
         """Closes the game interface cleanly without
@@ -168,6 +171,11 @@ class GameInterface(object):
             elif event.key == game.K_r:
                 if state_compare or state_waiting:
                     self._analysis.resetFrame()
+            elif event.key == game.K_UP:
+                self._speed = self._speed - 1 if self. _speed > 1 else 1
+            elif event.key == game.K_DOWN:
+                self._speed = self._speed + \
+                    1 if self._speed < GameInterface.MAX_SPEED else GameInterface.MAX_SPEED
 
     def run(self):
         """Main game runtime of the code, when this process stops it should quit,
@@ -193,6 +201,8 @@ class GameInterface(object):
                 if kinect.hasNewBodyFrame():
                     self._bodies = kinect.getLastBodyFrame().bodies
 
+            # if any(body.is_tracked for body in self._bodies):
+            #     self._analysisframe = analysis.getBody
             # print bodyFrame
             for count, body in enumerate(self._bodies):
                 if not body.is_tracked:
@@ -202,8 +212,9 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
+                    # if self._analysisframe:
                     self.drawLines(
-                        analysis.getBody(body),
+                        analysis.getBody(body, self._speed),
                         self._surface, GAME_COLORS[0])
 
             self.surfaceToScreen()

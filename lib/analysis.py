@@ -18,7 +18,8 @@ _LOGGER = logging.getLogger('analysis')
 
 
 class AnalysisStream(object):
-    """Wrapper class for the file reading and calculating of degrees to current body"""
+    """Wrapper class for the file reading and calculating
+    of degrees to current body"""
 
     def __init__(self, kinect, filename=None):
         self._kinect = kinect
@@ -55,13 +56,14 @@ class AnalysisStream(object):
         return 2 * mid - coord
 
     def getBody(self, body, speed=4):
-        """Iterates over traverse and frame to return the next corresponding frame of the analysis"""
+        """Iterates over traverse and frame to return the next
+        corresponding frame of the analysis"""
 
         try:
-            return self._frames.next()
+            return self._smoothframes.next()
         except:
-            self._frames= self.generateNextFrames(body, speed)
-            return self._frames.next()
+            self._smoothframes = self.generateNextFrames(body, speed)
+            return self._smoothframes.next()
 
         # frame = self.getNextFrames()
         # outline = [None for i in range(25)]
@@ -88,12 +90,27 @@ class AnalysisStream(object):
         # else:
         #     yield (None, None)
 
-    def _get_points(self, frame, body):
+    # def generateSmoothFrames(self, body, speed=4):
+    #
+    #     pass:
+
+    def getBones(self, points):
+        points = list(points)
+        for start, end in kinect.traverse():
+            try:
+                yield (points[start],
+                       points[end])
+            except:
+                pass
+
+    def getPoints(self, frame, body):
         outline = [None for i in range(25)]
         if frame:
             outline[0] = PyKinectV2._CameraSpacePoint(
                 body.joints[0].Position.x, body.joints[0].Position.y,
                 body.joints[0].Position.z)
+            norm = body.joint_orientations[0].Orientation
+            norm = (norm.w, norm.x, norm.y, norm.z)
 
             color_space = [None for i in range(25)]
             color_space[0] = self._camera_to_color(outline[0])
@@ -102,32 +119,36 @@ class AnalysisStream(object):
                     continue
                 length = self._kinect.getBoneLength(count)
                 coords = self.get_coords(outline[start_limb],
-                                         frame[end_limb], length)
+                                         frame[end_limb], norm, length)
                 outline[end_limb] = PyKinectV2._CameraSpacePoint(*coords)
                 color_space[end_limb] = self._camera_to_color(outline[
-                                                              end_limb])
+                    end_limb])
 
-            for start, end in kinect.traverse():
-                yield ((color_space[start].x, color_space[start].y),
-                       (color_space[end].x, color_space[end].y))
+            return color_space
+
+    def cspacetotuple(self, cspace):
+        return (cspace.x, cspace.y)
 
     def generateNextFrames(self, body, speed=4, precision=2):
-        frames = list(self.getNextFrames(2))
-        if len(frames) == 1:
+        frames = list(self.getNextFrames(precision))
+        if not frames:
+            yield (None, None)
+        elif len(frames) == 1:
             yield self._get_points(frames[0], body)
-            return
-        for i in range(len(frames) - 1):
-            curr, ref = frames[i], frames[i + 1]
-
-            curr_points, ref_points = self._get_points(curr, body), self._get_points(ref, body)
-
-            for s in speed:
-                frame = []
-                for (x1, y1), (x2, y2) in zip(curr, ref):
-                    dx = s * (x2 - x1) / speed
-                    dy = s * (y2 - y1) / speed
-                    frame.append((x1 + dx, y1 + dy))
-                yield frame
+        elif frames:
+            for i in range(len(frames) - 1):
+                curr, ref = frames[i], frames[i + 1]
+                curr_points = self.getPoints(curr, body)
+                ref_points = self.getPoints(ref, body)
+                for s in range(speed):
+                    points = []
+                    for csp1, csp2 in zip(curr_points, ref_points):
+                        (x1, y1) = self.cspacetotuple(csp1)
+                        (x2, y2) = self.cspacetotuple(csp2)
+                        dx = s * (x2 - x1) / speed
+                        dy = s * (y2 - y1) / speed
+                        points.append((x1 + dx, y1 + dy))
+                    yield (bone for bone in self.getBones(points))
 
     def getSurface(self):
         """Wrapper for the surface contained"""
@@ -140,15 +161,18 @@ class AnalysisStream(object):
                 r[0] * q[2] + r[1] * q[3] + r[2] * q[0] - r[3] * q[1],
                 r[0] * q[3] - r[1] * q[2] + r[2] * q[1] + r[3] * q[0]]
 
-    def get_coords(self, start, quat, length):
+    def get_coords(self, start, quat, norm, length):
         """Takes a previous coordinate, a quaternion, and a scalar
         returns a tuple representing the initial vector multiplied by the quat
         with length = length"""
         r = [0.0, 0.0, length, 0.0]
+        end_v = self.rotate_quat(r, quat)
+        return (end_v[1] + start.x, end_v[2] + start.y, end_v[3] + start.z)
+
+    def rotate_quat(self, r, quat):
         q_conj = [quat[0], -1 * quat[1], -1 * quat[2], -1 * quat[3]]
-        end_v = self.quaternion_multiply(
-            self.quaternion_multiply(quat, r), q_conj)[1:]
-        return (end_v[0] + start.x, end_v[1] + start.y, end_v[2] + start.z)
+        return self.quaternion_multiply(self.quaternion_multiply(quat, r),
+                                        q_conj)
 
     def prepSurface(self):
         self._analysis_surface.fill((0, 0, 0))
@@ -162,11 +186,10 @@ class AnalysisStream(object):
     def frameBack(self):
         self.adjustFramePos(position - gameinterface.FPS)
 
-    def getNextFrames(self, num=1):
+    def getNextFrames(self, num=1, skip=1):
         try:
             for i in range(num):
                 yield list(eval(j) for j in self._frames[self._curr])
-                self._curr += 1
+            self._curr += skip
         except:
             self._file_handle = None
-            return None
