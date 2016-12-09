@@ -6,19 +6,26 @@ from pykinect2.PyKinectV2 import *
 
 import logging
 import math
+import time
 
 __author__ = "Leon Chou and Roy Xu"
 
 """Wrapper for kinect library. Reads from kinect"""
 
 
-JointHierarchy = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
+JOINT_HIERARCHY = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
     2, 3), (8, 9, 10, ((11, 23), 24)), (4, 5, 6, ((7, 21), 22)))))
 
 _LOGGER = logging.getLogger('kinect')
 
+JOINTS = ['SpineBase', 'SpineMid', 'Neck', 'Head', 'ShoulderLeft', 'ElbowLeft',
+          'WristLeft', 'HandLeft', 'ShoulderRight', 'ElbowRight', 'WristRight',
+          'HandRight', 'HipLeft', 'KneeLeft', 'AnkleLeft', 'FootLeft',
+          'HipRight', 'KneeRight', 'AnkleRight', 'FootRight', 'SpineShoulder',
+          'HandTipLeft', 'ThumbLeft', 'HandTipRight', 'ThumbRight']
 
-def traverse(t=JointHierarchy, p=0):
+
+def traverse(t=JOINT_HIERARCHY, p=0):
     for item in t:
         if not isinstance(item, tuple):
             yield(p, item)
@@ -82,7 +89,7 @@ class KinectStream:
 
     def drawBody(self, body):
         points = self._kinect.body_joints_to_color_space(body.joints)
-        joints = body.joints
+        self._joints = joints = body.joints
 
         for count, joint in enumerate(traverse()):
             state = (joints[joint[0]].TrackingState,
@@ -94,26 +101,19 @@ class KinectStream:
                 continue
             point = (points[joint[0]], points[joint[1]])
             line = ((point[0].x, point[0].y), (point[1].x, point[1].y))
-            yield line
-
-    def initialize(self, body):
-        points = self._kinect.body_joints_to_color_space(body.joints)
-        joints = body.joints
-        for count, joint in enumerate(traverse()):
-            state = (joints[joint[0]].TrackingState,
-                     joints[joint[1]].TrackingState)
-            if (state[0] == TrackingState_NotTracked or
-                state[1] == TrackingState_NotTracked or
-                    state == (TrackingState_Inferred, TrackingState_Inferred)):
-                continue
-            point = (points[joint[0]], points[joint[1]])
-            length = math.hypot(
-                point[0].x - point[1].x, point[0].y - point[1].y)
+            length = self.calc_bone_length(
+                joints[joint[0]], joints[joint[1]])
             self._bone_lengths[count] = length
             _LOGGER.debug(
-                'From joint{} to joint{} with length {}'.format(joint[0],
-                                                                joint[1],
-                                                                length))
+                'From {} to {} with length {}'.format(joint[0],
+                                                      joint[1],
+                                                      length))
+            yield line
+
+    def calc_bone_length(self, joint0, joint1):
+        return math.sqrt(math.pow(joint0.Position.x - joint1.Position.x, 2) +
+                         math.pow(joint0.Position.y - joint1.Position.y, 2) +
+                         math.pow(joint0.Position.z - joint1.Position.z, 2))
 
     def initRecord(self):
         _LOGGER.info('Start recording')
@@ -125,4 +125,4 @@ class KinectStream:
         self._file_handle.write(';'.join(angles) + '\n')
 
     def orientationToQuat(self, orientation):
-        return [orientation.x, orientation.y, orientation.z, orientation.w]
+        return [orientation.w, orientation.x, orientation.y, orientation.z]

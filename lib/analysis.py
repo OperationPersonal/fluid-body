@@ -1,20 +1,18 @@
 #!/usr/bin/python
 
 import pygame as game
-import numpy as np
+from pykinect2 import PyKinectV2
+import ctypes
 
 import logging
 import math
 import csv
 
+import kinectwrapper as kinect
+
 """Analyzes stored file streams for analysis surface"""
 
 __author__ = "Leon Chou and Roy Xu"
-
-ANALYSIS_WIDTH = 400
-
-FLIP = [4, 12]
-D_FLIP = [5, 6, 7, 13, 14, 15, 21, 22]
 
 _LOGGER = logging.getLogger('analysis')
 
@@ -23,12 +21,11 @@ class AnalysisStream(object):
     """Wrapper class for the file reading and calculating of degrees to current body"""
 
     def __init__(self, kinect, filename=None):
-        self._kinect = kinect  # KinectStream
-        self._analysis_surface = game.Surface(
-            (ANALYSIS_WIDTH, self._kinect.colorFrameDesc().Height))
+        self._kinect = kinect
         if filename:
             self.openAnalysis(filename)
         self._curr = 0
+        self._camera_to_color = self._kinect._kinect._mapper.MapCameraPointToColorSpace
 
     def get_width(self):
         """Wrapper for the constant ANALYSIS_WIDTH"""
@@ -61,35 +58,31 @@ class AnalysisStream(object):
         """Iterates over traverse and frame to return the next corresponding frame of the analysis"""
 
         if not self._frames:
-            return None
-        surface = self._analysis_surface
+            yield (None, None)
         frame = self.getNextFrame()
         outline = [None for i in range(25)]
         if frame:
-            mid = surface.get_width() / 2
-            outline[0] = (mid,
-                          surface.get_height() / 4 * 3, 0)
+            outline[0] = PyKinectV2._CameraSpacePoint(
+                body.joints[0].Position.x, body.joints[0].Position.y,
+                body.joints[0].Position.z)
+
+            color_space = [None for i in range(25)]
+            color_space[0] = self._camera_to_color(outline[0])
             for count, (start_limb, end_limb) in enumerate(kinect.traverse()):
                 if not outline[start_limb]:
                     continue
                 length = self._kinect.getBoneLength(count)
-                outline[end_limb] = self.get_coords(
-                    outline[start_limb], frame[end_limb], length)
+                coords = self.get_coords(outline[start_limb],
+                                         frame[end_limb], length)
+                outline[end_limb] = PyKinectV2._CameraSpacePoint(*coords)
+                color_space[end_limb] = self._camera_to_color(outline[
+                                                              end_limb])
 
-            lines = []
-            for start, end in traverse():
-                if end in D_FLIP:
-                    x1 = self.flip_coord(outline[start][0], mid)
-                    x2 = self.flip_coord(outline[end][0], mid)
-                elif end in FLIP:
-                    x1 = outline[start][0]
-                    x2 = self.flip_coord(outline[end][0], mid)
-                else:
-                    x1 = outline[start][0]
-                    x2 = outline[end][0]
-                lines.append(
-                    ((x1, outline[start][1]), (x2, outline[end][1])))
-            return lines
+            for start, end in kinect.traverse():
+                yield ((color_space[start].x, color_space[start].y),
+                       (color_space[end].x, color_space[end].y))
+        else:
+            yield (None, None)
 
     def getSurface(self):
         """Wrapper for the surface contained"""
@@ -104,19 +97,22 @@ class AnalysisStream(object):
 
     def get_coords(self, start, quat, length):
         """Takes a previous coordinate, a quaternion, and a scalar
-        returns a tuple representing the initial 'sky'vector multiplied by the quat
+        returns a tuple representing the initial vector multiplied by the quat
         with length = length"""
-        r = [0, 0, length, 0]
+        r = [0.0, 0.0, length, 0.0]
         q_conj = [quat[0], -1 * quat[1], -1 * quat[2], -1 * quat[3]]
-        return [x + y for x, y in zip(self.quaternion_multiply(
-            self.quaternion_multiply(quat, r), q_conj)[1:], start)]
+        end_v = self.quaternion_multiply(
+            self.quaternion_multiply(quat, r), q_conj)[1:]
+        return (end_v[0] + start.x, end_v[1] + start.y, end_v[2] + start.z)
 
     def prepSurface(self):
         self._analysis_surface.fill((0, 0, 0))
-        # pass
 
     def adjustFramePos(self, position):
         self._curr = position
+
+    def resetFrame(self):
+        self._curr = 0
 
     def frameBack(self):
         self.adjustFramePos(position - gameinterface.FPS)
