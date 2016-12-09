@@ -6,7 +6,7 @@ import ctypes
 import logging
 
 import kinectwrapper as kinect
-import analysis2 as analysis
+import analysis
 import audio
 
 """Main game interface. Draws surfaces and contains main loop"""
@@ -115,6 +115,7 @@ class GameInterface(object):
         if not lines:
             return
         lines = list(lines)
+        # _LOGGER.warning('lines {}'.format(lines))
         if not lines[0]:
             return
         font = game.font.Font(None, 60)
@@ -202,7 +203,7 @@ class GameInterface(object):
                     self._bodies = kinect.getLastBodyFrame().bodies
 
             # Set analysis callback
-            analyze_body = analysis.get_color_space_frame()if any(
+            analyze_body = analysis.get_color_space_frame() if any(
                 b.is_tracked for b in self._bodies) else analyze_body
 
             for count, body in enumerate(self._bodies):
@@ -213,9 +214,13 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                 elif self._state == STATE_COMPARE:
-                    if analyze_body:
-                        lines = analyze_body(body)
-                        _LOGGER.debug('Analysis lines {}'.format(lines))
+                    _LOGGER.warning(
+                        'checking analyze_body {}'.format(analyze_body))
+                    if analyze_body is not None:
+                        points = analyze_body(body, self._speed)
+                        lines = list(analysis.points_to_lines(points))
+                        _LOGGER.warning(
+                            'Analysis lines {}'.format(lines))
                         self.drawLines(lines, self._surface, GAME_COLORS[0])
 
             self.surfaceToScreen()

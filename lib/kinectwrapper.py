@@ -68,7 +68,7 @@ class KinectStream:
         return self._kinect.has_new_body_frame()
 
     def _mapper(self):
-        return self._kinecet.mapper
+        return self._kinect._mapper
 
     def refreshBody(self, old_body):
         frame = self.getLastBodyFrame()

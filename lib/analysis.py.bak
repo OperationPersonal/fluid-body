@@ -180,6 +180,16 @@ class AnalysisStream(object):
     def adjustFramePos(self, position):
         self._curr = position
 
+    # def dist_from_body(self, frame, body):
+    #     joints = map(lambda j: self._joint_to_tuple(j, 2), body.joints)
+    #     dists = [(x2 - x1, y2 - y1) for (x1, y1), (x2, y2) in zip(frame, body)]
+    #     # These are indexes within dists
+    #     xmax = max( i for i in range(len(dists)), key=lambda i:dists[i][0])
+    #     ymax = max( i for i in range(len(dists)), key=lambda i:dists[i][1])
+    #     return (dists, xmax, ymax)
+
+    # def diff_in_angle(self, frame, body):
+
     def resetFrame(self):
         self._curr = 0
 

@@ -62,7 +62,6 @@ class Gui(object):
             return temp
 
         def compare():
-            menu.destroy()
             self.listrecords()
 
         addMenuButton(setstate('RECORD'), text='Record', color='red')
