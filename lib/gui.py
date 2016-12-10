@@ -2,6 +2,7 @@
 
 from Tkinter import *
 import tkFont
+from PIL import Image, ImageTk
 
 import os
 import logging
@@ -19,53 +20,80 @@ class Gui(object):
 
     def __init__(self):
         self._state = 'QUIT'
-        self._menucol = 0
         self._root = root = Tk()
         root.wm_title('Fluid')
         root.geometry('{}x{}'.format(WIDTH, HEIGHT))
+        self._font = tkFont.Font(family='Helvetica', size=18)
+        self._entry_font = tkFont.Font(family='Helvetica', size=14)
         self.background()
-        self.logo()
+        self.grid()
+        # self.login()
         self.startmenu()
 
-    def logo(self):
-        logo_image = PhotoImage(
-            file='C:/Users/Leon/Documents/Fluid/resources/logo.gif')
-        logo_label = Label(self._root, image=logo_image)
-        logo_label.place(x=0, y=0, relwidth=1, relheight=1)
-        logo_label.photo = logo_image
+    def grid(self):
+        for y in range(0, 9):
+            self._root.grid_rowconfigure(y, weight=1)
+        for x in range(0, 7):
+            self._root.grid_columnconfigure(x, weight=1)
+        self._root.grid_columnconfigure(2, weight=0)
+        self._root.grid_columnconfigure(4, weight=0)
 
     def background(self):
-        background_image = PhotoImage(
-            file='C:/Users/Leon/Documents/Fluid/resources/gym.gif')
-        background_label = Label(self._root, image=background_image)
-        background_label.place(x=0, y=0, relwidth=1, relheight=1)
-        background_label.photo = background_image
+        self.image = Image.open(
+            'C:/Users/Leon/Documents/Fluid/resources/gym.jpg')
+        self.img_copy = self.image.copy()
+        self.background_image = ImageTk.PhotoImage(self.image)
+
+        self.background = Label(self._root, image=self.background_image)
+        self.background.place(x=0, y=0, relwidth=1, relheight=1)
+        self.background.bind('<Configure>', self._resize_image)
+
+    def _resize_image(self, event):
+        new_width = event.width
+        new_height = event.height
+
+        self.image = self.img_copy.resize((new_width, new_height))
+
+        self.background_image = ImageTk.PhotoImage(self.image)
+        self.background.configure(image=self.background_image)
+
+    def login(self):
+        def submit(self):
+            self._username = self._user_field.get()
+            self._user_field.destroy()
+            self._submit.destroy()
+            self.startmenu()
+
+        self._user_field = Text(
+            self._root, relief='raised', font=self._entry_font, padx=10,
+            pady=6, width=35, height=1)
+        self._user_field.grid(row=5, column=3)
+        self._submit = Button(text='Submit', command=submit,
+                              font=self._font, relief='raised',
+                              overrelief='sunken', cursor='hand2',
+                              bg='#F7567C', width=10, height=1, pady=6)
+        self._submit.grid(row=6, column=3, sticky='n')
 
     def startmenu(self):
-        button_frame = Frame(self._root, width=50, height=10, pady=230)
-        button_frame.pack()
-
-        def addMenuButton(command, width=10, height=1, side=LEFT,
-                          text='button', color='black'):
-            font = tkFont.Font(family='Helvetica', size=18)
-            b = Button(button_frame, text=text, command=command,
-                       width=width, height=height, font=font,
-                       relief='flat', bg=color)
-            b.pack(side=side, padx=10)
-
-        def setstate(state):
-            def temp():
-                # Returns function using closure to set current state and exit
-                # loop
-                self._state = state
-                self._root.destroy()
-            return temp
+        def start():
+            self._state = 'RECORD'
+            self._root.destroy()
 
         def compare():
+            self._record.destroy()
+            self._compare.destroy()
             self.listrecords()
 
-        addMenuButton(setstate('RECORD'), text='Record', color='red')
-        addMenuButton(compare, text='Compare', color='green')
+        self._record = Button(text='Record', command=start,
+                              font=self._font, relief='raised',
+                              overrelief='sunken', cursor='hand2',
+                              bg='#F7567C', width=10, height=1, pady=6)
+        self._compare = Button(text='Compare', command=compare,
+                               font=self._font, relief='raised',
+                               overrelief='sunken', cursor='hand2',
+                               bg='#F7567C', width=10, height=1, pady=6)
+        self._record.grid(row=5, column=2)
+        self._compare.grid(row=5, column=4)
 
     def restart(self):
         self.__init__()
@@ -101,11 +129,11 @@ class Gui(object):
     def gui_close(self):
         if self._state == 'QUIT':
             return sys.exit()
-        if self._state == 'MENU':
+        elif self._state == 'MENU':
             self.__init__()
             self.run()
             return
-        if self._state == 'RECORD':
+        elif self._state == 'RECORD':
             game = gameinterface.GameInterface(callback=self.restart)
             game.run()
         elif self._state == 'COMPARE':

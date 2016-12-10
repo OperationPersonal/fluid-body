@@ -222,7 +222,7 @@ class GameInterface(object):
                     kinect.recordFrame(body)
                     break
                 elif self._state == STATE_COMPARE:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         'checking analyze_body {}'.format(analyze_body))
                     if analyze_body is not None:
                         color_points = analyze_body(body, self._speed)
@@ -232,7 +232,8 @@ class GameInterface(object):
                         #     points, body)
                         # _LOGGER.info(
                         #     'Dist from body {}, xmax {}, ymax {}'.format(dists, xmax, ymax))
-                        lines = list(analysis.points_to_lines(points))
+                        #     points, body)
+                        lines = list(analysis.points_to_lines(color_points))
                         # _LOGGER.warning(
                         #     'Analysis lines {}'.format(lines))
                         self.drawLines(lines, self._surface, GAME_COLORS[0])
