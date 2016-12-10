@@ -216,15 +216,17 @@ class GameInterface(object):
                     kinect.recordFrame(body)
                     break
                 elif self._state == STATE_COMPARE:
-                    _LOGGER.warning(
+                    _LOGGER.debug(
                         'checking analyze_body {}'.format(analyze_body))
                     if analyze_body is not None:
                         points = analyze_body(body, self._speed)
-                        _LOGGER.info('right before dist')
+                        _LOGGER.debug('right before dist')
                         dists, xmax, ymax = analysis.dist_from_body(
                             points, body)
-                        _LOGGER.info(
-                            'Dist from body {}, xmax {}, ymax {}'.format(dists, xmax, ymax))
+                        _LOGGER.debug(
+                            'Dist from body {}, xmax {}, ymax {}'.format(dists,
+                                                                         xmax,
+                                                                         ymax))
                         lines = list(analysis.points_to_lines(points))
                         # _LOGGER.warning(
                         #     'Analysis lines {}'.format(lines))

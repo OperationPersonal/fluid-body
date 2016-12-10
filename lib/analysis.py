@@ -54,7 +54,7 @@ class AnalysisStream(object):
                 yield (None, None)
 
     def _joint_to_tuple(self, j, end=3):
-        _LOGGER.info(j)
+        _LOGGER.debug(j)
         return (j.Position.x, j.Position.y, j.Position.z)[:end]
 
     def _get_coords(self, start, quat, length):
@@ -143,16 +143,16 @@ class AnalysisStream(object):
                 # dz = s[0] * (z2 - z1) / speed  # PASS Z
                 frame[count] = ((x1 + dx, y1 + dy))
             s[0] += 1
-            _LOGGER.warning('speed {} frame {}'.format(s, frame))
+            _LOGGER.debug('speed {} frame {}'.format(s, frame))
             return frame
 
         return body_callback
 
     def dist_from_body(self, frame, body):
-        _LOGGER.info('before map')
+        _LOGGER.debug('before map')
         joints = map(lambda j: self._joint_to_tuple(  # YOU HAVE TO MAKE THAT PARAMTER A 3
             j, 2), (body.joints[i] for i in range(25)))
-        _LOGGER.info('joints {}'.format(joints))
+        _LOGGER.debug('joints {}'.format(joints))
         dists = [(x2 - x1, y2 - y1)
                  for (x1, y1), (x2, y2) in zip(frame, joints)]
         # These are indexes within dists
