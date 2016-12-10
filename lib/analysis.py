@@ -24,8 +24,10 @@ class AnalysisStream(object):
         self._kinect = kinect
         if filename:
             self.open_analysis(filename)
-        self._camera_to_color = self._kinect._mapper().MapCameraPointToColorSpace
-        self._color_frames = self.get_next_color_frame()
+            self._curr_frame = 0
+            self._color_frames = self.get_next_color_frame()
+        self._camera_to_color = self._kinect._mapper() \
+            .MapCameraPointToColorSpace
 
     def open_analysis(self, filename):
         if filename:
@@ -52,6 +54,7 @@ class AnalysisStream(object):
                 yield (None, None)
 
     def _joint_to_tuple(self, j, end=3):
+        _LOGGER.info(j)
         return (j.Position.x, j.Position.y, j.Position.z)[:end]
 
     def _get_coords(self, start, quat, length):
@@ -137,9 +140,24 @@ class AnalysisStream(object):
                 x2, y2 = self._cs_to_tuple(j2)
                 dx = s[0] * (x2 - x1) / speed
                 dy = s[0] * (y2 - y1) / speed
+                # dz = s[0] * (z2 - z1) / speed  # PASS Z
                 frame[count] = ((x1 + dx, y1 + dy))
             s[0] += 1
             _LOGGER.warning('speed {} frame {}'.format(s, frame))
             return frame
 
         return body_callback
+
+    def dist_from_body(self, frame, body):
+        _LOGGER.info('before map')
+        joints = map(lambda j: self._joint_to_tuple(  # YOU HAVE TO MAKE THAT PARAMTER A 3
+            j, 2), (body.joints[i] for i in range(25)))
+        _LOGGER.info('joints {}'.format(joints))
+        dists = [(x2 - x1, y2 - y1)
+                 for (x1, y1), (x2, y2) in zip(frame, joints)]
+        # These are indexes within dists
+        xmax = max((i for i in range(len(dists))),
+                   key=lambda i: abs(dists[i][0]))
+        ymax = max((i for i in range(len(dists))),
+                   key=lambda i: abs(dists[i][1]))
+        return (dists, xmax, ymax)
