@@ -133,6 +133,12 @@ class GameInterface(object):
             except Exception as e:
                 pass
 
+    def toggle_state(self):
+        if self._state == STATE_RECORD or self._state == STATE_VIEW:
+            self._state = STATE_RECORD if self._state == STATE_VIEW else STATE_VIEW
+        else:
+            self._state = STATE_RECORD if self._state == STATE_WAITING else STATE_WAITING
+
     def event_trigger(self, event):
         if event.type == game.QUIT:
             self._stop_listening()
@@ -219,12 +225,13 @@ class GameInterface(object):
                     _LOGGER.warning(
                         'checking analyze_body {}'.format(analyze_body))
                     if analyze_body is not None:
-                        points = analyze_body(body, self._speed)
-                        _LOGGER.info('right before dist')
-                        dists, xmax, ymax = analysis.dist_from_body(
-                            points, body)
-                        _LOGGER.info(
-                            'Dist from body {}, xmax {}, ymax {}'.format(dists, xmax, ymax))
+                        color_points = analyze_body(body, self._speed)
+                        camera_points = analyze_body(body, self._speed, 'CAMERA')
+                        _LOGGER.info('Camera Points {}'.format(camera_points))
+                        # dists, xmax, ymax = analysis.dist_from_body(
+                        #     points, body)
+                        # _LOGGER.info(
+                        #     'Dist from body {}, xmax {}, ymax {}'.format(dists, xmax, ymax))
                         lines = list(analysis.points_to_lines(points))
                         # _LOGGER.warning(
                         #     'Analysis lines {}'.format(lines))

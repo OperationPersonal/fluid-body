@@ -104,7 +104,7 @@ class AnalysisStream(object):
     def _get_color_points(self, frame):
         outline = [None for i in range(25)]
 
-        def body_callback(body):
+        def body_callback(body, frame_type='COLOR'):
             joints = body.joints
             outline[0] = csp(*self._joint_to_tuple(joints[0]))
             color_coords = [None for i in range(25)]
@@ -117,7 +117,10 @@ class AnalysisStream(object):
                     outline[start], frame[end], length)
                 outline[end] = csp(*coords)
                 color_coords[end] = self._camera_to_color(outline[end])
-            return color_coords
+            if frame_type == 'COLOR':
+                return color_coords
+            else:
+                return outline
 
         return body_callback
 
@@ -127,21 +130,28 @@ class AnalysisStream(object):
     def _smooth_color_frames(self, curr, ref):
         s = [0]
 
-        def body_callback(body, speed=4):
+        def body_callback(body, speed=4, frame_type='COLOR'):
             if s[0] >= speed:
                 self.get_next_color_frame()
-            curr_points = curr(body)
-            ref_points = ref(body)
+            curr_points = curr(body, frame_type)
+            ref_points = ref(body, frame_type)
             frame = [None for i in range(25)]
             for count, (j1, j2) in enumerate(zip(curr_points, ref_points)):
                 if j1 is None or j2 is None:
                     continue
-                x1, y1 = self._cs_to_tuple(j1)
-                x2, y2 = self._cs_to_tuple(j2)
-                dx = s[0] * (x2 - x1) / speed
-                dy = s[0] * (y2 - y1) / speed
-                # dz = s[0] * (z2 - z1) / speed  # PASS Z
-                frame[count] = ((x1 + dx, y1 + dy))
+                if frame_type == 'COLOR':
+                    x1, y1 = self._cs_to_tuple(j1)
+                    x2, y2 = self._cs_to_tuple(j2)
+                    dx = s[0] * (x2 - x1) / speed
+                    dy = s[0] * (y2 - y1) / speed
+                    frame[count] = (x1 + dx, y1 + dy)
+                else:
+                    x1, y1, z1 = self._camera_to_tuple(j1)
+                    x2, y2, z2 = self._camera_to_tuple(j2)
+                    dx = s[0] * (x2 - x1) / speed
+                    dy = s[0] * (y2 - y1) / speed
+                    dz = s[0] * (z2 - z1) / speed
+                    frame[count] = (x1 + dx, y1 + dy, z1 + dz)
             s[0] += 1
             _LOGGER.warning('speed {} frame {}'.format(s, frame))
             return frame
