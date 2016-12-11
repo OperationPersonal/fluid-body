@@ -15,8 +15,10 @@ __author__ = "Leon Chou and Roy Xu"
 
 _LOGGER = logging.getLogger('analysis')
 
+
 def _m_to_cm(v):
     return int(v * 100 // 1)
+
 
 class AnalysisStream(object):
 
@@ -177,21 +179,27 @@ class AnalysisStream(object):
 
     def get_worst_body_part(self, body):
         frame = self.camera.get_frame()(body)
+        frame = [self._camera_to_tuple(frame[i]) for i in range(25)]
         joints = [self._joint_to_tuple(body.joints[i]) for i in range(25)]
-        dists = [ (x2 - x1, y2 - y1, z2 - z1) for (x1, y1, z1), (x2, y2, z2) in zip(joints, frame)]
-        return max( (max(dists[i] key=lambda v: abs(v)), i) for i in range(25), key=lambda t: abs(t[0]))
+        _LOGGER.info('frame {} joints {}'.format(frame, joints))
+        dists = [(x2 - x1, y2 - y1, z2 - z1)
+                 for (x1, y1, z1), (x2, y2, z2) in zip(joints, frame)]
+        return max(((max(dists[i], key=lambda v: abs(v)), i)
+                    for i in range(25)),
+                   key=lambda t: abs(t[0]))[1]
 
     def get_dist_dir(self, frame, body, index):
-        j1, j2 = frame[index], self._joint_to_tuple(body.joints[index])
+        j1, j2 = self._camera_to_tuple(
+            frame[index]), self._joint_to_tuple(body.joints[index])
         if not (j1 and j2):
             raise KeyError('Not tracking joint')
         skip = [3, 15, 19, 21, 22, 23, 24]
-        dist = ( v2 - v1 for v1, v2 in zip(j1, j2))
-        return max( (d, i) for i, d in enumerate(dist),
+        dist = (v2 - v1 for v1, v2 in zip(j1, j2))
+        return max(((d, i) for i, d in enumerate(dist)),
                    key=lambda t: abs(t[0]) if t[1] not in skip else 0)
 
     def get_status_message(self, dist, direction, joint_type):
-        message = 'Move {} {} meters {}'
+        message = 'Move {} {} centimeters {}'
 
         joint = kinect.JOINTS[joint_type]
         dist = _m_to_cm(dist)
@@ -202,7 +210,7 @@ class AnalysisStream(object):
         else:
             direction = 'forward' if dist < 0 else 'backward'
 
-        return message.format(joint, dist, direction)
+        return message.format(joint, abs(dist), direction)
 
     def close(self):
         pass

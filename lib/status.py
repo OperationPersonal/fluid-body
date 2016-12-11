@@ -19,7 +19,7 @@ class StatusBar(object):
         self.set_font(fontname, fontsize)
         self._surface = game.Surface(size)
         self._user = user
-        self._lines = []
+        self._line = ''
         self._color = game.color.THECOLORS['white']
         self._audio = audio.AudioInterface()
 

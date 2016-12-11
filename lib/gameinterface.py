@@ -37,6 +37,7 @@ FPS = 30
 
 GET_WORST_BODY_PART = game.USEREVENT + 1
 
+
 class GameInterface(object):
     """Wrapper for game interface"""
 
@@ -51,20 +52,21 @@ class GameInterface(object):
         self._state = mode
         screen_width = self._infoObject.current_w >> 1
         screen_height = (self._infoObject.current_h >> 1) + STATUS_HEIGHT
-        _LOGGER.info('Screen width: {}, Screen height: {}'.format(
-                    self._screen.get_width(), self._screen.get_height()))
         self._screen = game.display.set_mode((screen_width,
-            screen_height),
-            game.HWSURFACE |
-            game.DOUBLEBUF |
-            game.RESIZABLE, 32)
+                                              screen_height),
+                                             game.HWSURFACE |
+                                             game.DOUBLEBUF |
+                                             game.RESIZABLE, 32)
+        _LOGGER.info('Screen width: {}, Screen height: {}'.format(
+            self._screen.get_width(), self._screen.get_height()))
         self._kinect = kinect.KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc(
         ).Width, self._kinect.colorFrameDesc().Height), 0, 32)
-        self._analysis = analysis.AnalysisStream(self._kinect, filename)if filename else None
+        self._analysis = analysis.AnalysisStream(
+            self._kinect, filename)if filename else None
         self._status_bar = status.StatusBar(fontsize=24,
-        size=(self._screen.get_width(),
-        STATUS_HEIGHT), user=user)
+                                            size=(self._screen.get_width(),
+                                                  STATUS_HEIGHT), user=user)
         game.display.set_caption('Fluid Body Analyzer')
         self._callback = callback
         self._bodies = []
@@ -75,7 +77,8 @@ class GameInterface(object):
 
         if self._analysis:
             self._worst = None
-            game.time.set_timer(GET_WORST_BODY_PART, 2000) #2 seconds
+            self._body = None
+            game.time.set_timer(GET_WORST_BODY_PART, 2000)  # 2 seconds
 
     def quit(self):
         """Closes the game interface cleanly without
@@ -157,7 +160,7 @@ class GameInterface(object):
                 event.dict['size'],
                 game.HWSURFACE | game.DOUBLEBUF |
                 game.RESIZABLE, 32)
-        elif evnet.type == GET_WORST_BODY_PART and self._body:
+        elif event.type == GET_WORST_BODY_PART and self._body:
             self._worst = self._analysis.get_worst_body_part(self._body)
         elif event.type == game.KEYDOWN:
             if event.key == game.K_ESCAPE:
@@ -234,15 +237,19 @@ class GameInterface(object):
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                     break
-                elif self._state == STATE_COMPARE and color_analysis and camera_analysis:
+                elif self._state == STATE_COMPARE and \
+                        color_analysis and camera_analysis:
                     color = color_analysis(body)  # x, y
                     lines = list(analysis.color_points_to_bones(color))
                     self.drawLines(lines, self._surface, GAME_COLORS[1])
 
                     if self._worst:
+                        _LOGGER.info('worst {}'.format(self._worst))
                         camera = camera_analysis(body)  # x, y, z
-                        vector = analysis.get_diff(camera, body, self._worst)
-                        message = analysis.get_status_message(*vector, self._worst)
+                        vector = analysis.get_dist_dir(
+                            camera, body, self._worst)
+                        message = analysis.get_status_message(
+                            vector[0], vector[1], self._worst)
                         self._status_bar.to_analysis(message)
             self.surfaceToScreen()
 
