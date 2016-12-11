@@ -18,11 +18,11 @@ JOINT_HIERARCHY = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
 
 _LOGGER = logging.getLogger('kinect')
 
-JOINTS = ['SpineBase', 'SpineMid', 'Neck', 'Head', 'ShoulderLeft', 'ElbowLeft',
-          'WristLeft', 'HandLeft', 'ShoulderRight', 'ElbowRight', 'WristRight',
-          'HandRight', 'HipLeft', 'KneeLeft', 'AnkleLeft', 'FootLeft',
-          'HipRight', 'KneeRight', 'AnkleRight', 'FootRight', 'SpineShoulder',
-          'HandTipLeft', 'ThumbLeft', 'HandTipRight', 'ThumbRight']
+JOINTS = ['Base of Spine', 'Middle of Spine', 'Neck', 'Head', 'Left Shoulder', 'Left Elbow',
+          'Left Wrist', 'Left Hand', 'Right Shoulder', 'Right Elbow', 'Right Wrist',
+          'Right Hand', 'Right Hip', 'Left Knee', 'Left Ankle', 'Left Foot',
+          'Right Hip', 'Right Knee', 'Right Ankle', 'Right Foot', 'Top of Spine',
+          'Left Hand Tip', 'Left Thumb', 'Right Hand Tip', 'Right Thumb']
 
 
 def traverse(t=JOINT_HIERARCHY, p=0):
