@@ -25,18 +25,8 @@ class AnalysisStream(object):
             self._c = 0
 
         def __iter__(self):
-            curr = self._c
-            self._c = 0
-            for f in self:
+            for f in self._f:
                 yield f
-            self._c = curr
-
-        def next(self):
-            if self._c >= len(self._f):
-                raise StopIteration
-            f = self._f[self._c]
-            self._c += 1
-            return f
 
         def _change_frame(self, change):
             self._c += change
@@ -64,14 +54,20 @@ class AnalysisStream(object):
 
         def get_prev_frame(self, skip=1):
             self._change_frame(-skip)
-            reuturn self.get_frame()
+            return self.get_frame()
 
     def __init__(self, kinect, file_name):
         self._kinect = kinect
         self.open_analysis(file_name)
 
-    def _cs_to_tuple(self, cs, end=2):
-        return (cs.x, cs.y)[:end]
+    def _joint_to_tuple(self, j, end=3):
+        return (j.Position.x, j.Position.y, j.Position.z)[:end]
+
+    def _color_to_tuple(self, cs, end=2):
+        try:
+            return (cs.x, cs.y)[:end]
+        except:
+            return(cs[0], cs[1])[:end]
 
     def _camera_to_tuple(self, cam, end=3):
         return (cam.x, cam.y, cam.z)[:end]
@@ -118,10 +114,10 @@ class AnalysisStream(object):
         frames = []
         for frame in self._raw_camera:
             if len(frames) == 0:
-                frames[0] = frame
+                frames.append(frame)
                 continue
             for s in range(SPEED_LIMIT):
-                def callback(body, curr=frame, prev=frames[-1] speed=s):
+                def callback(body, curr=frame, prev=frames[-1], speed=s):
                     curr = curr(body)
                     prev = prev(body)
                     outline = [None for i in range(25)]
@@ -133,7 +129,8 @@ class AnalysisStream(object):
                         dx = speed * (x2 - x1) / SPEED_LIMIT
                         dy = speed * (y2 - y1) / SPEED_LIMIT
                         dz = speed * (z2 - z1) / SPEED_LIMIT
-                        outline[count] = (x1 + dx, y1 + dy, z1 + dz)
+                        outline[count] = csp(x1 + dx, y1 + dy, z1 + dz)
+                    return outline
                 frames.append(callback)
             frames.append(frame)
         self.camera = self._Frames(frames)
@@ -145,7 +142,9 @@ class AnalysisStream(object):
         for frame in self.camera:
             def callback(body, f=frame):
                 cam_f = f(body)
-                return [self._camera_to_color(cam_f[i]) for i in range(25)]
+                color = [self._camera_to_color(
+                    cam_f[i]) for i in range(25)]
+                return [self._color_to_tuple(c) for c in color]
             frames.append(callback)
         self.color = self._Frames(frames)
 

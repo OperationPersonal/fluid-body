@@ -221,7 +221,8 @@ class GameInterface(object):
                     self._bodies = kinect.getLastBodyFrame().bodies
 
             # Set analysis callback
-            if self._state == STATE_COMPARE and any(body.is_tracked for body in self._bodies):
+            if self._state == STATE_COMPARE and \
+                    any(body.is_tracked for body in self._bodies):
                 color_analysis = analysis.color.get_next_frame()
                 camera_analysis = analysis.camera.get_next_frame()
 
@@ -239,9 +240,10 @@ class GameInterface(object):
                     _LOGGER.debug(
                         'checking analyze_body {}'.format(analyze_body))
                     if color_analysis and camera_analysis:
-                        color = color_analysis(body) #x, y
-                        camera = camera_analysis(body) # x, y, z
-                        lines = analysis.color_points_to_bones(color)
+                        color = color_analysis(body)  # x, y
+                        camera = camera_analysis(body)  # x, y, z
+                        lines = list(analysis.color_points_to_bones(color))
+                        _LOGGER.info(list(lines))
                         # self._status_bar.to_analysis(message)
                         self.drawLines(lines, self._surface, GAME_COLORS[1])
                 self._fresh = False
