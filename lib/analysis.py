@@ -1,12 +1,12 @@
-#!/usr/bin/python
-
 import pygame as game
 from pykinect2.PyKinectV2 import _CameraSpacePoint as csp
-import ctypes
-
 import logging
 import math
-import csv
+from csv import reader
+import os
+
+DATA_DIR = 'data/'
+SPEED_LIMIT = 12
 
 import kinect
 
@@ -14,116 +14,60 @@ __author__ = "Leon Chou and Roy Xu"
 
 _LOGGER = logging.getLogger('analysis')
 
-
 class AnalysisStream(object):
-    """Wrapper class to export an array of functions
-    that takes a body and returns coordinates corresponding
-    to the frame"""
 
-    def __init__(self, kinect, filename=None):
+
+    class _Frames(object):
+
+        def __init__(self, frames):
+            self._f = frames
+            self._c = 0
+
+        def __iter__(self):
+            curr = self._c
+            self._c = 0
+            for f in self:
+                yield f
+            self._c = curr
+
+        def next(self):
+            if self._c >= len(self._f):
+                raise StopIteration
+            f = self._f[self._c]
+            self._c += 1
+            return f
+
+        def _change_frame(self, change):
+            self._c += change
+            if self._c < 0:
+                self._c = 0
+            elif self._c >= len(self._f):
+                self._c = len(self._f) - 1
+
+        def get_c(self):
+            return self._c
+
+        def set_frame(self, frame):
+            self._c = frame:
+            self._change_frame(0)
+
+        def _reset_frame(self):
+            self._c = 0
+
+        def get_frame(self):
+            return self._f[self._c]
+
+        def get_next_frame(self, skip=1):
+            self._change_frame(skip)
+            return self.get_frame()
+
+        def get_prev_frame(self, skip=1):
+            self._change_frame(-skip)
+            reuturn self.get_frame()
+
+    def __init__(self, kinect, file_name):
         self._kinect = kinect
-        if filename:
-            self.open_analysis(filename)
-            self._curr_frame = 0
-            self._color_frames = self.get_next_color_frame()
-        self._camera_to_color = self._kinect._mapper() \
-            .MapCameraPointToColorSpace
-
-    def open_analysis(self, filename):
-        if filename:
-            file_handle = csv.reader(
-                open("data/" + filename, "r"), delimiter=';',
-                skipinitialspace=True)
-            self._raw_frames = [[eval(q) for q in row] for row in file_handle]
-            self._curr_frame = 0
-        else:
-            self._raw_frames = None
-
-    def close(self):
-        try:
-            self._kinect.close()
-        except:
-            pass
-
-    def points_to_lines(self, points):
-        points = list(points)
-        for start, end in kinect.traverse():
-            try:
-                yield (points[start], points[end])
-            except:
-                yield (None, None)
-
-    def _joint_to_tuple(self, j, end=3):
-        _LOGGER.debug(j)
-        return (j.Position.x, j.Position.y, j.Position.z)[:end]
-
-    def _get_coords(self, start, quat, length):
-        r = (0.0, 0.0, length, 0.0)
-        q_conj = (quat[0], -quat[1], -quat[2], -quat[3])
-        end_vector = self._q_mult(self._q_mult(quat, r), q_conj)[1:]
-        return (end_vector[0] + start.x,
-                end_vector[1] + start.y, end_vector[2] + start.z)
-
-    def _q_mult(self, q, r):
-        return (r[0] * q[0] - r[1] * q[1] - r[2] * q[2] - r[3] * q[3],
-                r[0] * q[1] + r[1] * q[0] - r[2] * q[3] + r[3] * q[2],
-                r[0] * q[2] + r[1] * q[3] + r[2] * q[0] - r[3] * q[1],
-                r[0] * q[3] - r[1] * q[2] + r[2] * q[1] + r[3] * q[0])
-
-    def reset_frame(self):
-        self._curr_frame = 0
-
-    def get_next_frame(self):
-        try:
-            return self._frames.next()
-        except:
-            self._frames = self._next_frames()
-            return self._frames.next()
-
-    def get_color_space_frame(self):
-        if not self._color_frames:
-            self.get_next_color_frame()
-        return self._color_frames
-
-    def get_next_color_frame(self):
-        _LOGGER.debug('got next frame {}'.format(self._curr_frame))
-        self._curr_frame += 1
-        self._color_frames = self._next_color_frames()
-
-    def _next_color_frames(self):
-        try:
-            _LOGGER.debug('curr {}'.format(self._curr_frame))
-            curr, ref = self._raw_frames[self._curr_frame:self._curr_frame + 2]
-            curr, ref = self._get_color_points(
-                curr), self._get_color_points(ref)
-            _LOGGER.debug('curr {} ref {}'.format(curr, ref))
-            return self._smooth_color_frames(curr, ref)
-        except:
-            self._curr_frame -= 1
-            return self._next_color_frames()
-
-    def _get_color_points(self, frame):
-        outline = [None for i in range(25)]
-
-        def body_callback(body, frame_type='COLOR'):
-            joints = body.joints
-            outline[0] = csp(*self._joint_to_tuple(joints[0]))
-            color_coords = [None for i in range(25)]
-            color_coords[0] = self._camera_to_color(outline[0])
-            for count, (start, end) in enumerate(kinect.traverse()):
-                if not outline[start]:
-                    continue
-                length = self._kinect.getBoneLength(count)
-                coords = self._get_coords(
-                    outline[start], frame[end], length)
-                outline[end] = csp(*coords)
-                color_coords[end] = self._camera_to_color(outline[end])
-            if frame_type == 'COLOR':
-                return color_coords
-            else:
-                return outline
-
-        return body_callback
+        self.open_analysis(file_name)
 
     def _cs_to_tuple(self, cs, end=2):
         return (cs.x, cs.y)[:end]
@@ -131,93 +75,102 @@ class AnalysisStream(object):
     def _camera_to_tuple(self, cam, end=3):
         return (cam.x, cam.y, cam.z)[:end]
 
-    def _smooth_color_frames(self, curr, ref):
-        s = [0]
+    def _camera_to_color(self, point):
+        return self._kinect._kinect._mapper.MapCameraPointToColorSpace(point)
 
-        def body_callback(body, speed=2, frame_type='COLOR', first=True):
-            if first and s[0] >= speed:
-                self.get_next_color_frame()
-            curr_points = curr(body, frame_type)
-            ref_points = ref(body, frame_type)
-            frame = [None for i in range(25)]
-            for count, (j1, j2) in enumerate(zip(curr_points, ref_points)):
-                if j1 is None or j2 is None:
-                    continue
-                if frame_type == 'COLOR':
-                    x1, y1 = self._cs_to_tuple(j1)
-                    x2, y2 = self._cs_to_tuple(j2)
-                    dx = s[0] * (x2 - x1) / speed
-                    dy = s[0] * (y2 - y1) / speed
-                    frame[count] = (x1 + dx, y1 + dy)
-                else:
-                    x1, y1, z1 = self._camera_to_tuple(j1)
-                    x2, y2, z2 = self._camera_to_tuple(j2)
-                    dx = s[0] * (x2 - x1) / speed
-                    dy = s[0] * (y2 - y1) / speed
-                    dz = s[0] * (z2 - z1) / speed
-                    frame[count] = (x1 + dx, y1 + dy, z1 + dz)
-            if first:
-                s[0] += 1
-            # _LOGGER.info('speed {} frame {}'.format(s, frame))
-            return frame
+    def _reset_frames(self):
+        self._init_raw_camera_frames()
+        self._init_camera_frames()
+        self._init_color_frames()
 
-        return body_callback
+    def _q_mult(self, q, r):
+        return (r[0] * q[0] - r[1] * q[1] - r[2] * q[2] - r[3] * q[3],
+                r[0] * q[1] + r[1] * q[0] - r[2] * q[3] + r[3] * q[2],
+                r[0] * q[2] + r[1] * q[3] + r[2] * q[0] - r[3] * q[1],
+                r[0] * q[3] - r[1] * q[2] + r[2] * q[1] + r[3] * q[0])
 
-    def camera_from_body(self, camera_frame, body):
-        joints = [self._joint_to_tuple(body.joints[i]) for i in range(25)]
-        dists = [(x2 - x1, y2 - y1, z2 - z1)
-                 for (x1, y1, z1), (x2, y2, z2) in zip(joints, camera_frame)]
-        return dists
+    def _q_to_coords(self, start, quat, length):
+        r = (0.0, 0.0, length, 0.0)
+        q_conj = (quat[0], -quat[1], -quat[2], -quat[3])
+        end_vector = self._q_mult(self._q_mult(quat, r), q_conj)[1:]
+        return (end_vector[0] + start.x,
+                end_vector[1] + start.y, end_vector[2] + start.z)
 
-    def dist_from_body(self, frame, body):
-        _LOGGER.debug('before map')
-        joints = map(lambda j: self._joint_to_tuple(
-            j, 2), (body.joints[i] for i in range(25)))
-        _LOGGER.debug('joints {}'.format(joints))
-        dists = [(x2 - x1, y2 - y1)
-                 for (x1, y1), (x2, y2) in zip(joints, frame)]
-        # These are indexes within dists
-        xmax = max((i for i in range(len(dists))),
-                   key=lambda i: abs(dists[i][0]))
-        ymax = max((i for i in range(len(dists))),
-                   key=lambda i: abs(dists[i][1]))
-        return (dists, xmax, ymax)
+    def _init_raw_camera_frames(self):
+        frames = []
+        for quats in self._raw_quats:
+            def callback(body, q=quats):
+                outline = [None for i in range(25)]
+                joints = body.joints
+                outline[0] = csp(*self._joint_to_tuple(joints[0]))
+                for count, (start, end) in enumerate(kinect.traverse()):
+                    if not outline[start]:
+                        continue
+                    scale = self._kinect.getBoneLength(count)
+                    outline[end] = csp(*self._q_to_coords(
+                        outline[start], q[end], scale))
+                return outline
+            frames.append(callback)
+        self._raw_camera = self._Frames(frames)
 
-    def _m_to_cm(self, vals):
-        return map(lambda v: int(v * 100 // 1), vals)
+    def _init_camera_frames(self):
+        frames = []
+        for frame in self._raw_camera:
+            if len(frames) == 0:
+                frames[0] = frame
+                continue
+            for s in range(SPEED_LIMIT):
+                def callback(body, curr=frame, prev=frames[-1] speed=s):
+                    curr = curr(body)
+                    prev = prev(body)
+                    outline = [None for i in range(25)]
+                    for count, (j1, j2) in enumerate(zip(prev, curr)):
+                        if j1 is None or j2 is None:
+                            continue
+                        x1, y1, z1 = self._camera_to_tuple(j1)
+                        x2, y2, z2 = self._camera_to_tuple(j2)
+                        dx = speed * (x2 - x1) / SPEED_LIMIT
+                        dy = speed * (y2 - y1) / SPEED_LIMIT
+                        dz = speed * (z2 - z1) / SPEED_LIMIT
+                        outline[count] = (x1 + dx, y1 + dy, z1 + dz)
+                frames.append(callback)
+            frames.append(frame)
+        self.camera = self._Frames(frames)
 
-    def get_analysis_message(self, dists, tolerance=50):
-        message = 'Move {} {} centimeters {}'
-        skip = [3, 15, 19, 21, 22, 23, 24]
+    def _init_color_frames(self):
+        if not self.camera:
+            raise NotImplementedError('Init camera frames first')
+        frames = []
+        for frame in self.camera:
+            def callback(body, f=frame):
+                cam_f = f(body)
+                return [self._camera_to_color(cam_f[i]) for i in range(25)]
+            frames.append(callback)
+        self.color = self._Frames(frames)
 
-        xmax, xval = max(((i, d[0]) for i, d in enumerate(dists)),
-                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
-        ymax, yval = max(((i, d[1]) for i, d in enumerate(dists)),
-                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
-        zmax, zval = max(((i, d[2]) for i, d in enumerate(dists)),
-                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
-
-        xval, yval, zval = self._m_to_cm([xval, yval, zval])
-
-        _LOGGER.info('xmax {} xval {}, ymax {}, yval {}, zmax{}, zval{}'
-                     .format(
-                         xmax, xval, ymax, yval, zmax, zval))
-
-        def gj(i):
-            return kinect.JOINTS[i]
-
-        if abs(xval) > abs(yval):
-            if abs(zval) > abs(xval):
-                return (zmax,
-                        message.format(gj(zmax), abs(zval),
-                                       'forward' if zval < 0 else 'backward'))
-            else:
-                return (xmax, message.format(gj(xmax), abs(xval),
-                                             'left' if xval < 0 else 'right'))
+    def open_analysis(self, filename):
+        if not filename:
+            raise LookupError('No filename passed')
+        file_path = DATA_DIR + filename
+        try:
+            file_handle = reader(
+                open(file_path), 'rb'),
+                delimiter=';',
+                skipinitialspace=True)
+        except:
+            os.remove(file_path)
+            raise EOFError('File not parsed correctly; Removed file')
         else:
-            if abs(yval) < abs(zval):
-                return (zmax, message.format(gj(zmax), abs(zval),
-                                             'forward' if zval < 0 else 'backward'))
-            else:
-                return (ymax, message.format(gj(ymax), abs(yval),
-                                             'up' if yval < 0 else 'down'))
+            self._raw_quats = [[eval(q) for q in frame] for frame in file_handle]
+            self._reset_frames()
+
+    def color_points_to_bones(self, cp):
+        cp = list(cp)
+        for start, end in kinect.traverse():
+            try:
+                yield (cp[start], cp[end])
+            except:
+                yield (None, None)
+
+    def close(self):
+        pass

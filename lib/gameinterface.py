@@ -221,9 +221,9 @@ class GameInterface(object):
                     self._bodies = kinect.getLastBodyFrame().bodies
 
             # Set analysis callback
-            if self._state == STATE_COMPARE:
-                analyze_body = analysis.get_color_space_frame() if any(
-                    b.is_tracked for b in self._bodies) else analyze_body
+            if self._state == STATE_COMPARE and any(body.is_tracked for body in self._bodies):
+                color_analysis = analysis.color.get_next_frame()
+                camera_analysis = analysis.camera.get_next_frame()
 
             self._fresh = True
             for count, body in enumerate(self._bodies):
@@ -238,21 +238,11 @@ class GameInterface(object):
                 elif self._state == STATE_COMPARE:
                     _LOGGER.debug(
                         'checking analyze_body {}'.format(analyze_body))
-                    if analyze_body is not None:
-                        color_points = analyze_body(
-                            body, self._speed, first=self._fresh)
-                        camera_points = analyze_body(
-                            body, self._speed, 'CAMERA', first=self._fresh)
-                        _LOGGER.debug('Camera Points {}'.format(camera_points))
-                        camera_dist = analysis.camera_from_body(
-                            camera_points, body)
-                        _LOGGER.debug('camera dist {}'.format(camera_dist))
-                        lines = list(analysis.points_to_lines(color_points))
-                        _LOGGER.debug(
-                            'Analysis lines {}'.format(lines))
-                        maxindex, message = analysis.get_analysis_message(
-                            camera_dist)
-                        self._status_bar.to_analysis(message)
+                    if color_analysis and camera_analysis:
+                        color = color_analysis(body) #x, y
+                        camera = camera_analysis(body) # x, y, z
+                        lines = analysis.color_points_to_bones(color)
+                        # self._status_bar.to_analysis(message)
                         self.drawLines(lines, self._surface, GAME_COLORS[1])
                 self._fresh = False
             self.surfaceToScreen()
