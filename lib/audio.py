@@ -19,7 +19,7 @@ VOICE_M = VOICE + 'TTS_MS_EN-US_DAVID_11.0'
 
 class AudioInterface(object):
 
-    def __init__(self, interface):
+    def __init__(self, interface=None):
         self._engine = pyttsx.init()
         self._interface = interface
         self._mute = False

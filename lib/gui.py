@@ -92,7 +92,7 @@ class Gui(object):
         self._compare = Button(text='Compare', command=compare,
                                font=self._font, relief='raised',
                                overrelief='sunken', cursor='hand2',
-                               bg='#F7567C', width=10, height=1, pady=6)
+                               bg='#0BA489', width=10, height=1, pady=6)
         self._record.grid(row=5, column=2)
         self._compare.grid(row=5, column=4)
 

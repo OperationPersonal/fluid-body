@@ -158,7 +158,6 @@ class AnalysisStream(object):
                     frame[count] = (x1 + dx, y1 + dy, z1 + dz)
             if first:
                 s[0] += 1
-            # _LOGGER.info('speed {} frame {}'.format(s, frame))
             return frame
 
         return body_callback
@@ -199,25 +198,24 @@ class AnalysisStream(object):
 
         xval, yval, zval = self._m_to_cm([xval, yval, zval])
 
-        _LOGGER.info('xmax {} xval {}, ymax {}, yval {}, zmax{}, zval{}'
-                     .format(
-                         xmax, xval, ymax, yval, zmax, zval))
-
         def gj(i):
             return kinect.JOINTS[i]
 
         if abs(xval) > abs(yval):
             if abs(zval) > abs(xval):
-                return (zmax,
+                return ((zmax, 2),
                         message.format(gj(zmax), abs(zval),
                                        'forward' if zval < 0 else 'backward'))
             else:
-                return (xmax, message.format(gj(xmax), abs(xval),
-                                             'left' if xval < 0 else 'right'))
+                return ((xmax, 0), message.format(gj(xmax), abs(xval),
+                                                  'left' if xval < 0
+                                                  else 'right'))
         else:
             if abs(yval) < abs(zval):
-                return (zmax, message.format(gj(zmax), abs(zval),
-                                             'forward' if zval < 0 else 'backward'))
+                return ((zmax, 2),
+                        message.format(gj(zmax), abs(zval),
+                                       'forward' if zval < 0 else 'backward'))
             else:
-                return (ymax, message.format(gj(ymax), abs(yval),
-                                             'up' if yval < 0 else 'down'))
+                return ((ymax, 1),
+                        message.format(gj(ymax), abs(yval),
+                                       'up' if yval < 0 else 'down'))

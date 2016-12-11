@@ -2,7 +2,12 @@ import pygame as game
 import logging
 from datetime import datetime
 
+import audio
+
 _LOGGER = logging.getLogger('statusbar')
+
+# qo aH I SONR KNOQ RHat is happening righ tnow this is so weoid
+# dsadjsaddjdksad jsdjnxzc shashjn
 
 
 class StatusBar(object):
@@ -16,6 +21,7 @@ class StatusBar(object):
         self._user = user
         self._lines = []
         self._color = game.color.THECOLORS['white']
+        self._audio = audio.AudioInterface()
 
         self._analysis = None
 
@@ -24,7 +30,8 @@ class StatusBar(object):
 
     def to_analysis(self, line):
         self._analysis = line
-        _LOGGER.info('line {}'.format(line))
+        self._audio.speak(line)
+        _LOGGER.debug('line {}'.format(line))
 
     def set_font(self, fontname=None, fontsize=None):
         self._fontname = fontname = fontname if fontname else self._fontname
