@@ -35,6 +35,7 @@ _LOGGER = logging.getLogger('gameinterface')
 
 FPS = 30
 
+GET_WORST_BODY_PART = game.USEREVENT + 1
 
 class GameInterface(object):
     """Wrapper for game interface"""
@@ -48,32 +49,33 @@ class GameInterface(object):
         game.init()
         self._infoObject = game.display.Info()
         self._state = mode
-        self._kinect = kinect.KinectStream()
-        self._analysis = analysis.AnalysisStream(self._kinect, filename)
         screen_width = self._infoObject.current_w >> 1
         screen_height = (self._infoObject.current_h >> 1) + STATUS_HEIGHT
-        self._screen = game.display.set_mode((screen_width,
-                                              screen_height),
-                                             game.HWSURFACE |
-                                             game.DOUBLEBUF |
-                                             game.RESIZABLE, 32)
         _LOGGER.info('Screen width: {}, Screen height: {}'.format(
-            self._screen.get_width(), self._screen.get_height()))
-        self._status_bar = status.StatusBar(fontsize=24,
-                                            size=(self._screen.get_width(),
-                                                  STATUS_HEIGHT), user=user)
-        game.display.set_caption('Fluid Body Analyser')
-        self._clock = game.time.Clock()
-        self._callback = callback
+                    self._screen.get_width(), self._screen.get_height()))
+        self._screen = game.display.set_mode((screen_width,
+            screen_height),
+            game.HWSURFACE |
+            game.DOUBLEBUF |
+            game.RESIZABLE, 32)
+        self._kinect = kinect.KinectStream()
         self._surface = game.Surface((self._kinect.colorFrameDesc(
         ).Width, self._kinect.colorFrameDesc().Height), 0, 32)
-        self._bodies = None
+        self._analysis = analysis.AnalysisStream(self._kinect, filename)if filename else None
+        self._status_bar = status.StatusBar(fontsize=24,
+        size=(self._screen.get_width(),
+        STATUS_HEIGHT), user=user)
+        game.display.set_caption('Fluid Body Analyzer')
+        self._callback = callback
         self._bodies = []
         self._pause = False
         self._audio = audio.AudioInterface(self)
         self._speed = 2
-        self._status_bar.to_lines('Display loaded')
-        self._timer = 0
+        self._clock = game.time.Clock()
+
+        if self._analysis:
+            self._worst = None
+            game.time.set_timer(GET_WORST_BODY_PART, 2000) #2 seconds
 
     def quit(self):
         """Closes the game interface cleanly without
@@ -114,16 +116,13 @@ class GameInterface(object):
         game.display.update()
         game.display.flip()
 
-    def drawLines(self, lines, surface, color=None, width=8, dots=True):
+    def drawLines(self, lines, surface, color=None, width=8):
         """Takes a list of tuples, each containing two endpoints
         of a line segment to draw on a 2d surface"""
 
         color = random.choice(GAME_COLORS) if not color else color
-        if not lines:
-            return
         lines = list(lines)
-        # _LOGGER.warning('lines {}'.format(lines))
-        if not lines[0]:
+        if not lines or len(lines) < 1:
             return
         font = game.font.Font(None, 60)
         traversal = list(kinect.traverse())
@@ -136,10 +135,7 @@ class GameInterface(object):
                 if jointtype not in [21, 22, 23, 24]:
                     game.draw.circle(surface, color, map(
                         lambda i: int(i), end), 20, 0)
-                # jointnum = font.render(str(traversal[index][1]), 0,
-                #                        game.color.THECOLORS['black'])
-                # surface.blit(jointnum, map(lambda c: c - 20, end))
-            except Exception as e:
+            except TypeError:
                 pass
 
     def toggle_state(self):
@@ -161,6 +157,8 @@ class GameInterface(object):
                 event.dict['size'],
                 game.HWSURFACE | game.DOUBLEBUF |
                 game.RESIZABLE, 32)
+        elif evnet.type == GET_WORST_BODY_PART and self._body:
+            self._worst = self._analysis.get_worst_body_part(self._body)
         elif event.type == game.KEYDOWN:
             if event.key == game.K_ESCAPE:
                 self.quit()
@@ -204,7 +202,7 @@ class GameInterface(object):
         screen, kinect = self._screen, self._kinect,
         surface, analysis = self._surface, self._analysis
 
-        analyze_body = None
+        status_body = None
 
         self._stop_listening = self._audio.listen()
         while True:
@@ -223,30 +221,29 @@ class GameInterface(object):
             # Set analysis callback
             if self._state == STATE_COMPARE and \
                     any(body.is_tracked for body in self._bodies):
-                color_analysis = analysis.color.get_next_frame()
-                camera_analysis = analysis.camera.get_next_frame()
+                color_analysis = analysis.color.get_next_frame(self._speed)
+                camera_analysis = analysis.camera.get_next_frame(self._speed)
 
-            self._fresh = True
             for count, body in enumerate(self._bodies):
                 if not body.is_tracked:
                     continue
+                self._body = body
                 self.drawLines(
                     kinect.drawBody(body),
                     self._surface, GAME_COLORS[2], width=4)
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                     break
-                elif self._state == STATE_COMPARE:
-                    _LOGGER.debug(
-                        'checking analyze_body {}'.format(analyze_body))
-                    if color_analysis and camera_analysis:
-                        color = color_analysis(body)  # x, y
+                elif self._state == STATE_COMPARE and color_analysis and camera_analysis:
+                    color = color_analysis(body)  # x, y
+                    lines = list(analysis.color_points_to_bones(color))
+                    self.drawLines(lines, self._surface, GAME_COLORS[1])
+
+                    if self._worst:
                         camera = camera_analysis(body)  # x, y, z
-                        lines = list(analysis.color_points_to_bones(color))
-                        _LOGGER.info(list(lines))
-                        # self._status_bar.to_analysis(message)
-                        self.drawLines(lines, self._surface, GAME_COLORS[1])
-                self._fresh = False
+                        vector = analysis.get_diff(camera, body, self._worst)
+                        message = analysis.get_status_message(*vector, self._worst)
+                        self._status_bar.to_analysis(message)
             self.surfaceToScreen()
 
             self._clock.tick(FPS)
