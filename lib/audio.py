@@ -48,16 +48,20 @@ class AudioInterface(object):
 
     def parse_audio(self, recognizer, audio):
         try:
+            if self._mute:
+                return
             phrase = recognizer.recognize_google(audio)
+            if self._mute:
+                return
             _LOGGER.info('Recognized {}'.format(phrase))
             if 'start' in phrase:
                 _LOGGER.info('Starting analysis')
                 self.speak('started analysis')
-                self._interface._state = gameinterface.STATE_COMPARE
+                self._interface.toggle_state()
             elif 'stop' in phrase:
-                _LOGGER.info('Stopping analysis')
-                self.speak('stopping analysis')
-                self._interface._state = gameinterface.STATE_WAITING
+                _LOGGER.info('Stop analysis')
+                self.speak('started analysis')
+                self._interface.toggle_state()
             elif 'hello' in phrase:
                 self.speak('hello')
         except speech_recognition.UnknownValueError:

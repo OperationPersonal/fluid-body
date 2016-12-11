@@ -8,7 +8,7 @@ import logging
 import math
 import csv
 
-import kinectwrapper as kinect
+import kinect
 
 __author__ = "Leon Chou and Roy Xu"
 
@@ -86,6 +86,7 @@ class AnalysisStream(object):
         return self._color_frames
 
     def get_next_color_frame(self):
+        _LOGGER.debug('got next frame {}'.format(self._curr_frame))
         self._curr_frame += 1
         self._color_frames = self._next_color_frames()
 
@@ -127,11 +128,14 @@ class AnalysisStream(object):
     def _cs_to_tuple(self, cs, end=2):
         return (cs.x, cs.y)[:end]
 
+    def _camera_to_tuple(self, cam, end=3):
+        return (cam.x, cam.y, cam.z)[:end]
+
     def _smooth_color_frames(self, curr, ref):
         s = [0]
 
-        def body_callback(body, speed=4, frame_type='COLOR'):
-            if s[0] >= speed:
+        def body_callback(body, speed=2, frame_type='COLOR', first=True):
+            if first and s[0] >= speed:
                 self.get_next_color_frame()
             curr_points = curr(body, frame_type)
             ref_points = ref(body, frame_type)
@@ -152,22 +156,68 @@ class AnalysisStream(object):
                     dy = s[0] * (y2 - y1) / speed
                     dz = s[0] * (z2 - z1) / speed
                     frame[count] = (x1 + dx, y1 + dy, z1 + dz)
-            s[0] += 1
-            _LOGGER.debug('speed {} frame {}'.format(s, frame))
+            if first:
+                s[0] += 1
+            # _LOGGER.info('speed {} frame {}'.format(s, frame))
             return frame
 
         return body_callback
 
+    def camera_from_body(self, camera_frame, body):
+        joints = [self._joint_to_tuple(body.joints[i]) for i in range(25)]
+        dists = [(x2 - x1, y2 - y1, z2 - z1)
+                 for (x1, y1, z1), (x2, y2, z2) in zip(joints, camera_frame)]
+        return dists
+
     def dist_from_body(self, frame, body):
         _LOGGER.debug('before map')
-        joints = map(lambda j: self._joint_to_tuple(  # YOU HAVE TO MAKE THAT PARAMTER A 3
+        joints = map(lambda j: self._joint_to_tuple(
             j, 2), (body.joints[i] for i in range(25)))
         _LOGGER.debug('joints {}'.format(joints))
         dists = [(x2 - x1, y2 - y1)
-                 for (x1, y1), (x2, y2) in zip(frame, joints)]
+                 for (x1, y1), (x2, y2) in zip(joints, frame)]
         # These are indexes within dists
         xmax = max((i for i in range(len(dists))),
                    key=lambda i: abs(dists[i][0]))
         ymax = max((i for i in range(len(dists))),
                    key=lambda i: abs(dists[i][1]))
         return (dists, xmax, ymax)
+
+    def _m_to_cm(self, vals):
+        return map(lambda v: int(v * 100 // 1), vals)
+
+    def get_analysis_message(self, dists, tolerance=50):
+        message = 'Move {} {} centimeters {}'
+        skip = [3, 15, 19, 21, 22, 23, 24]
+
+        xmax, xval = max(((i, d[0]) for i, d in enumerate(dists)),
+                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
+        ymax, yval = max(((i, d[1]) for i, d in enumerate(dists)),
+                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
+        zmax, zval = max(((i, d[2]) for i, d in enumerate(dists)),
+                         key=lambda t: abs(t[1]) if t[0] not in skip else 0)
+
+        xval, yval, zval = self._m_to_cm([xval, yval, zval])
+
+        _LOGGER.info('xmax {} xval {}, ymax {}, yval {}, zmax{}, zval{}'
+                     .format(
+                         xmax, xval, ymax, yval, zmax, zval))
+
+        def gj(i):
+            return kinect.JOINTS[i]
+
+        if abs(xval) > abs(yval):
+            if abs(zval) > abs(xval):
+                return (zmax,
+                        message.format(gj(zmax), abs(zval),
+                                       'forward' if zval < 0 else 'backward'))
+            else:
+                return (xmax, message.format(gj(xmax), abs(xval),
+                                             'left' if xval < 0 else 'right'))
+        else:
+            if abs(yval) < abs(zval):
+                return (zmax, message.format(gj(zmax), abs(zval),
+                                             'forward' if zval < 0 else 'backward'))
+            else:
+                return (ymax, message.format(gj(ymax), abs(yval),
+                                             'up' if yval < 0 else 'down'))

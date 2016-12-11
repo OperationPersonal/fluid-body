@@ -5,14 +5,14 @@ import ctypes
 
 import logging
 
-import kinectwrapper as kinect
+import kinect
 import analysis
 import audio
+import status
 
 """Main game interface. Draws surfaces and contains main loop"""
 
 __author__ = "Leon Chou and Roy Xu"
-
 
 GAME_COLORS = [game.color.THECOLORS["red"],
                game.color.THECOLORS["blue"],
@@ -20,14 +20,16 @@ GAME_COLORS = [game.color.THECOLORS["red"],
                game.color.THECOLORS["orange"],
                game.color.THECOLORS["purple"],
                game.color.THECOLORS["yellow"],
-               game.color.THECOLORS["violet"]]
+               game.color.THECOLORS["violet"],
+               game.color.THECOLORS["black"],
+               game.color.THECOLORS['white']]
 
 STATE_VIEW = 'VIEW'
 STATE_RECORD = 'RECORD'
 STATE_WAITING = 'WAITING'
 STATE_COMPARE = 'COMPARE'
 
-STATUS_HEIGHT = 50
+STATUS_HEIGHT = 40
 
 _LOGGER = logging.getLogger('gameinterface')
 
@@ -39,7 +41,8 @@ class GameInterface(object):
 
     MAX_SPEED = 5
 
-    def __init__(self, callback=lambda: None, mode=STATE_VIEW, filename=None):
+    def __init__(self, callback=lambda: None,
+                 mode=STATE_VIEW, filename=None, user='Leon'):
         _LOGGER.info('Started interface')
 
         game.init()
@@ -56,8 +59,9 @@ class GameInterface(object):
                                              game.RESIZABLE, 32)
         _LOGGER.info('Screen width: {}, Screen height: {}'.format(
             self._screen.get_width(), self._screen.get_height()))
-        self._status_bar = game.Surface(
-            (self._screen.get_width(), STATUS_HEIGHT))
+        self._status_bar = status.StatusBar(fontsize=24,
+                                            size=(self._screen.get_width(),
+                                                  STATUS_HEIGHT), user=user)
         game.display.set_caption('Fluid Body Analyser')
         self._clock = game.time.Clock()
         self._callback = callback
@@ -67,19 +71,22 @@ class GameInterface(object):
         self._bodies = []
         self._pause = False
         self._audio = audio.AudioInterface(self)
-        self._speed = 5
+        self._speed = 2
+        self._status_bar.to_lines('Display loaded')
+        self._timer = 0
 
     def quit(self):
         """Closes the game interface cleanly without
         ripping any connections or anything dangling"""
-
-        try:
-            self._analysis.close()
-            self._kinect.close()
-        except:
-            pass
+        self._status_bar.to_lines('Closing')
+        self._analysis.close()
         game.quit()
         self._callback()
+        try:
+            self._kinect.close()
+            self._stop_listening()
+        except:
+            pass
 
     def drawCameraInput(self, frame, surface):
         """Takes the kinect's camera output (colorframe) and uses c's
@@ -101,13 +108,13 @@ class GameInterface(object):
         draw_surface = game.transform.scale(
             self._surface, (real_screen_w, scaled_height))
         self._screen.blit(draw_surface, (0, 0))
-        self._screen.blit(self._status_bar,
+        self._screen.blit(self._status_bar.get_surface(),
                           (0, self._screen.get_height() - STATUS_HEIGHT))
         draw_surface = analysis_surface = None
         game.display.update()
         game.display.flip()
 
-    def drawLines(self, lines, surface, color=None, width=8):
+    def drawLines(self, lines, surface, color=None, width=8, dots=True):
         """Takes a list of tuples, each containing two endpoints
         of a line segment to draw on a 2d surface"""
 
@@ -125,8 +132,10 @@ class GameInterface(object):
                 continue
             try:
                 game.draw.line(surface, color, start, end, width)
-                game.draw.circle(surface, color, map(
-                    lambda i: int(i), end), 20, 0)
+                jointtype = traversal[index][1]
+                if jointtype not in [21, 22, 23, 24]:
+                    game.draw.circle(surface, color, map(
+                        lambda i: int(i), end), 20, 0)
                 # jointnum = font.render(str(traversal[index][1]), 0,
                 #                        game.color.THECOLORS['black'])
                 # surface.blit(jointnum, map(lambda c: c - 20, end))
@@ -135,13 +144,17 @@ class GameInterface(object):
 
     def toggle_state(self):
         if self._state == STATE_RECORD or self._state == STATE_VIEW:
-            self._state = STATE_RECORD if self._state == STATE_VIEW else STATE_VIEW
+            self._state = STATE_RECORD if self._state == STATE_VIEW \
+                else STATE_VIEW
         else:
-            self._state = STATE_RECORD if self._state == STATE_WAITING else STATE_WAITING
+            self._state = STATE_COMPARE if self._state == STATE_WAITING \
+                else STATE_WAITING
+
+        if self._state == STATE_RECORD:
+            self._kinect.initRecord()
 
     def event_trigger(self, event):
         if event.type == game.QUIT:
-            self._stop_listening()
             self.quit()
         elif event.type == game.VIDEORESIZE:  # window resized
             self._screen = game.display.set_mode(
@@ -149,18 +162,15 @@ class GameInterface(object):
                 game.HWSURFACE | game.DOUBLEBUF |
                 game.RESIZABLE, 32)
         elif event.type == game.KEYDOWN:
+            if event.key == game.K_ESCAPE:
+                self.quit()
             state_record = self._state == STATE_RECORD
             state_view = self._state == STATE_VIEW
             state_waiting = self._state == STATE_WAITING
             state_compare = self._state == STATE_COMPARE
             if event.key == game.K_RETURN:
                 if state_record or state_view:
-                    if state_view:
-                        self._state = STATE_RECORD
-                    else:
-                        self._state = STATE_VIEW
-                    if self._state == STATE_RECORD:
-                        self._kinect.initRecord()
+                    self.toggle_state()
                 else:
                     if state_waiting:
                         _LOGGER.info('Start comparison')
@@ -169,9 +179,10 @@ class GameInterface(object):
                         self._state = STATE_WAITING
             elif event.key == game.K_p:
                 if self._pause:
-                    _LOGGER.info('Unpause')
+                    self._status_bar.to_lines('Resumed')
                 else:
-                    _LOGGER.info('Pause')
+                    self._status_bar.to_lines('Paused')
+                    self.surfaceToScreen()
                 self._pause = not self._pause
             elif event.key == game.K_m:
                 self._audio.mute()
@@ -182,7 +193,8 @@ class GameInterface(object):
                 self._speed = self._speed - 1 if self. _speed > 1 else 1
             elif event.key == game.K_DOWN:
                 self._speed = self._speed + \
-                    1 if self._speed < GameInterface.MAX_SPEED else GameInterface.MAX_SPEED
+                    1 if self._speed < GameInterface.MAX_SPEED \
+                    else GameInterface.MAX_SPEED
 
     def run(self):
         """Main game runtime of the code, when this process stops it should quit,
@@ -213,11 +225,13 @@ class GameInterface(object):
                 analyze_body = analysis.get_color_space_frame() if any(
                     b.is_tracked for b in self._bodies) else analyze_body
 
+            self._fresh = True
             for count, body in enumerate(self._bodies):
                 if not body.is_tracked:
                     continue
-                self.drawLines(kinect.drawBody(body),
-                               self._surface, GAME_COLORS[5])
+                self.drawLines(
+                    kinect.drawBody(body),
+                    self._surface, GAME_COLORS[2], width=4)
                 if self._state == STATE_RECORD:
                     kinect.recordFrame(body)
                     break
@@ -225,19 +239,22 @@ class GameInterface(object):
                     _LOGGER.debug(
                         'checking analyze_body {}'.format(analyze_body))
                     if analyze_body is not None:
-                        color_points = analyze_body(body, self._speed)
-                        camera_points = analyze_body(body, self._speed, 'CAMERA')
-                        _LOGGER.info('Camera Points {}'.format(camera_points))
-                        # dists, xmax, ymax = analysis.dist_from_body(
-                        #     points, body)
-                        # _LOGGER.info(
-                        #     'Dist from body {}, xmax {}, ymax {}'.format(dists, xmax, ymax))
-                        #     points, body)
+                        color_points = analyze_body(
+                            body, self._speed, first=self._fresh)
+                        camera_points = analyze_body(
+                            body, self._speed, 'CAMERA', first=self._fresh)
+                        _LOGGER.debug('Camera Points {}'.format(camera_points))
+                        camera_dist = analysis.camera_from_body(
+                            camera_points, body)
+                        _LOGGER.debug('camera dist {}'.format(camera_dist))
                         lines = list(analysis.points_to_lines(color_points))
-                        # _LOGGER.warning(
-                        #     'Analysis lines {}'.format(lines))
-                        self.drawLines(lines, self._surface, GAME_COLORS[0])
-
+                        _LOGGER.debug(
+                            'Analysis lines {}'.format(lines))
+                        maxindex, message = analysis.get_analysis_message(
+                            camera_dist)
+                        self._status_bar.to_analysis(message)
+                        self.drawLines(lines, self._surface, GAME_COLORS[1])
+                self._fresh = False
             self.surfaceToScreen()
 
             self._clock.tick(FPS)

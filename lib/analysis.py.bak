@@ -8,7 +8,7 @@ import logging
 import math
 import csv
 
-import kinectwrapper as kinect
+import kinect
 
 """Analyzes stored file streams for analysis surface"""
 

@@ -27,8 +27,8 @@ class Gui(object):
         self._entry_font = tkFont.Font(family='Helvetica', size=14)
         self.background()
         self.grid()
-        # self.login()
         self.startmenu()
+        # self.login()
 
     def grid(self):
         for y in range(0, 9):
@@ -44,9 +44,9 @@ class Gui(object):
         self.img_copy = self.image.copy()
         self.background_image = ImageTk.PhotoImage(self.image)
 
-        self.background = Label(self._root, image=self.background_image)
-        self.background.place(x=0, y=0, relwidth=1, relheight=1)
-        self.background.bind('<Configure>', self._resize_image)
+        self._background = Label(self._root, image=self.background_image)
+        self._background.place(x=0, y=0, relwidth=1, relheight=1)
+        self._background.bind('<Configure>', self._resize_image)
 
     def _resize_image(self, event):
         new_width = event.width
@@ -55,7 +55,7 @@ class Gui(object):
         self.image = self.img_copy.resize((new_width, new_height))
 
         self.background_image = ImageTk.PhotoImage(self.image)
-        self.background.configure(image=self.background_image)
+        self._background.configure(image=self.background_image)
 
     def login(self):
         def submit(self):
@@ -68,6 +68,7 @@ class Gui(object):
             self._root, relief='raised', font=self._entry_font, padx=10,
             pady=6, width=35, height=1)
         self._user_field.grid(row=5, column=3)
+        entry.insert(0, 'Enter your user name...')
         self._submit = Button(text='Submit', command=submit,
                               font=self._font, relief='raised',
                               overrelief='sunken', cursor='hand2',
