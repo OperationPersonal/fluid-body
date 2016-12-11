@@ -84,10 +84,10 @@ class GameInterface(object):
         """Closes the game interface cleanly without
         ripping any connections or anything dangling"""
         self._status_bar.to_lines('Closing')
-        self._analysis.close()
         game.quit()
         self._callback()
         try:
+            self._analysis.close()
             self._kinect.close()
             self._stop_listening()
         except:

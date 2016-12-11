@@ -27,8 +27,8 @@ class Gui(object):
         self._entry_font = tkFont.Font(family='Helvetica', size=14)
         self.background()
         self.grid()
-        self.startmenu()
-        # self.login()
+        # self.startmenu()
+        self.login()
 
     def grid(self):
         for y in range(0, 9):
@@ -68,11 +68,11 @@ class Gui(object):
             self._root, relief='raised', font=self._entry_font, padx=10,
             pady=6, width=35, height=1)
         self._user_field.grid(row=5, column=3)
-        self._user_field.insert(0, 'Enter your user name...')
+        self._user_field.insert('insert', 'Username')
         self._submit = Button(text='Submit', command=submit,
                               font=self._font, relief='raised',
                               overrelief='sunken', cursor='hand2',
-                              bg='#F7567C', width=10, height=1, pady=6)
+                              bg='#F7567C', width=10, height=1, pady=4)
         self._submit.grid(row=6, column=3, sticky='n')
 
     def startmenu(self):
