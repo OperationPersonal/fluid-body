@@ -119,7 +119,7 @@ class GameInterface(object):
         game.display.update()
         game.display.flip()
 
-    def drawLines(self, lines, surface, color=None, width=8):
+    def drawLines(self, lines, surface, color=None, width=8, worst=None):
         """Takes a list of tuples, each containing two endpoints
         of a line segment to draw on a 2d surface"""
 
@@ -133,7 +133,10 @@ class GameInterface(object):
             if start is None or end is None:
                 continue
             try:
-                game.draw.line(surface, color, start, end, width)
+                dcolor = color
+                if start == worst or end == worst:
+                    dcolor = game.color.THECOLORS['red']
+                game.draw.line(surface, dcolor, start, end, width)
                 jointtype = traversal[index][1]
                 if jointtype not in [21, 22, 23, 24]:
                     game.draw.circle(surface, color, map(
@@ -241,7 +244,7 @@ class GameInterface(object):
                         color_analysis and camera_analysis:
                     color = color_analysis(body)  # x, y
                     lines = list(analysis.color_points_to_bones(color))
-                    self.drawLines(lines, self._surface, GAME_COLORS[1])
+                    self.drawLines(lines, self._surface, GAME_COLORS[1], worst=self._worst)
 
                     if self._worst:
                         _LOGGER.info('worst {}'.format(self._worst))
@@ -251,6 +254,7 @@ class GameInterface(object):
                         message = analysis.get_status_message(
                             vector[0], vector[1], self._worst)
                         self._status_bar.to_analysis(message)
+                        analysis.write_status_message(message)
             self.surfaceToScreen()
 
             self._clock.tick(FPS)

@@ -8,6 +8,7 @@ import os
 import kinect
 
 DATA_DIR = 'data/'
+WRITE_DIR = 'analysis/'
 SPEED_LIMIT = 12
 
 
@@ -63,6 +64,7 @@ class AnalysisStream(object):
     def __init__(self, kinect, file_name):
         self._kinect = kinect
         self.open_analysis(file_name)
+        self.prep_report(file_name)
 
     def _joint_to_tuple(self, j, end=3):
         return (j.Position.x, j.Position.y, j.Position.z)[:end]
@@ -169,6 +171,9 @@ class AnalysisStream(object):
                                for frame in file_handle]
             self._reset_frames()
 
+    def prep_report(self, filename):
+        self._file = open(WRITE_DIR + filename+ '.txt', 'wb+')
+
     def color_points_to_bones(self, cp):
         cp = list(cp)
         for start, end in kinect.traverse():
@@ -211,6 +216,10 @@ class AnalysisStream(object):
             direction = 'forward' if dist < 0 else 'backward'
 
         return message.format(joint, abs(dist), direction)
+
+    def write_status_message(self, message):
+        if self._file:
+            self._file.write(message+'\n')
 
     def close(self):
         pass
