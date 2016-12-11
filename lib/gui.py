@@ -68,7 +68,7 @@ class Gui(object):
             self._root, relief='raised', font=self._entry_font, padx=10,
             pady=6, width=35, height=1)
         self._user_field.grid(row=5, column=3)
-        entry.insert(0, 'Enter your user name...')
+        self._user_field.insert(0, 'Enter your user name...')
         self._submit = Button(text='Submit', command=submit,
                               font=self._font, relief='raised',
                               overrelief='sunken', cursor='hand2',
