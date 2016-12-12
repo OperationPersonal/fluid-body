@@ -1,9 +1,11 @@
 import pygame as game
 from pykinect2.PyKinectV2 import _CameraSpacePoint as csp
+
 import logging
 import math
 from csv import reader
 import os
+import time
 
 import kinect
 
@@ -63,8 +65,8 @@ class AnalysisStream(object):
 
     def __init__(self, kinect, file_name):
         self._kinect = kinect
-        self.open_analysis(file_name)
-        self.prep_report(file_name)
+        self.open_analysis(file_name[0])
+        self.prep_report()
 
     def _joint_to_tuple(self, j, end=3):
         return (j.Position.x, j.Position.y, j.Position.z)[:end]
@@ -171,8 +173,10 @@ class AnalysisStream(object):
                                for frame in file_handle]
             self._reset_frames()
 
-    def prep_report(self, filename):
-        self._file = open(WRITE_DIR + filename+ '.txt', 'wb+')
+    def prep_report(self):
+        self._file = open(
+            WRITE_DIR + os.environ['Fluid Username'].replace('\n', '') + ';' +
+            str(time.time()) + '.txt', 'wb+')
 
     def color_points_to_bones(self, cp):
         cp = list(cp)
@@ -186,7 +190,7 @@ class AnalysisStream(object):
         frame = self.camera.get_frame()(body)
         frame = [self._camera_to_tuple(frame[i]) for i in range(25)]
         joints = [self._joint_to_tuple(body.joints[i]) for i in range(25)]
-        _LOGGER.info('frame {} joints {}'.format(frame, joints))
+        _LOGGER.debug('frame {} joints {}'.format(frame, joints))
         dists = [(x2 - x1, y2 - y1, z2 - z1)
                  for (x1, y1, z1), (x2, y2, z2) in zip(joints, frame)]
         return max(((max(dists[i], key=lambda v: abs(v)), i)
@@ -219,7 +223,7 @@ class AnalysisStream(object):
 
     def write_status_message(self, message):
         if self._file:
-            self._file.write(message+'\n')
+            self._file.write(message + '\n')
 
     def close(self):
         pass

@@ -7,6 +7,7 @@ from pykinect2.PyKinectV2 import *
 import logging
 import math
 import time
+import os
 
 __author__ = "Leon Chou and Roy Xu"
 
@@ -18,11 +19,12 @@ JOINT_HIERARCHY = ((16, 17, 18, 19), (12, 13, 14, 15), (1, 20, ((
 
 _LOGGER = logging.getLogger('kinect')
 
-JOINTS = ['Base of Spine', 'Middle of Spine', 'Neck', 'Head', 'Left Shoulder', 'Left Elbow',
-          'Left Wrist', 'Left Hand', 'Right Shoulder', 'Right Elbow', 'Right Wrist',
-          'Right Hand', 'Right Hip', 'Left Knee', 'Left Ankle', 'Left Foot',
-          'Right Hip', 'Right Knee', 'Right Ankle', 'Right Foot', 'Top of Spine',
-          'Left Hand Tip', 'Left Thumb', 'Right Hand Tip', 'Right Thumb']
+JOINTS = ['Base of Spine', 'Middle of Spine', 'Neck', 'Head', 'Left Shoulder',
+          'Left Elbow', 'Left Wrist', 'Left Hand', 'Right Shoulder',
+          'Right Elbow', 'Right Wrist', 'Right Hand', 'Right Hip', 'Left Knee',
+          'Left Ankle', 'Left Foot', 'Right Hip', 'Right Knee', 'Right Ankle',
+          'Right Foot', 'Top of Spine', 'Left Hand Tip', 'Left Thumb',
+          'Right Hand Tip', 'Right Thumb']
 
 
 def traverse(t=JOINT_HIERARCHY, p=0):
@@ -120,7 +122,12 @@ class KinectStream:
 
     def initRecord(self):
         _LOGGER.info('Start recording')
-        self._file_handle = open('./data/' + str(time.time()), "wb+")
+
+        username = os.environ['Fluid Username'].replace('\n', '')
+        exercise = os.environ['Fluid Exercise'].replace('\n', '')
+        self._file_handle = open('./data/' + username +
+                                 ';' + exercise +
+                                 ';' + str(time.time()), "wb+")
 
     def recordFrame(self, body):
         angles = (str(self.orientationToQuat(

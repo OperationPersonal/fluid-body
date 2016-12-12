@@ -6,6 +6,7 @@ from PIL import Image, ImageTk
 
 import os
 import logging
+from datetime import datetime
 
 import gameinterface
 
@@ -25,10 +26,13 @@ class Gui(object):
         root.geometry('{}x{}'.format(WIDTH, HEIGHT))
         self._font = tkFont.Font(family='Helvetica', size=18)
         self._entry_font = tkFont.Font(family='Helvetica', size=14)
+        self._record_font = tkFont.Font(family='Helvetica', size=12)
         self.background()
         self.grid()
-        # self.startmenu()
-        self.login()
+        if 'Fluid Username' not in os.environ:
+            self.login()
+        else:
+            self.startmenu()
 
     def grid(self):
         for y in range(0, 9):
@@ -58,27 +62,59 @@ class Gui(object):
         self._background.configure(image=self.background_image)
 
     def login(self):
-        def submit(self):
-            self._username = self._user_field.get()
+        def submit():
+            self._username = self._user_field.get(1.0, 'end')
+            os.environ['Fluid Username'] = self._username
             self._user_field.destroy()
             self._submit.destroy()
             self.startmenu()
+
+        def on_entry_click(event):
+            if 'Username' in self._user_field.get(1.0, 'end'):
+                self._user_field.delete(1.0, "end")
+                self._user_field.insert(1.0, '')
 
         self._user_field = Text(
             self._root, relief='raised', font=self._entry_font, padx=10,
             pady=6, width=35, height=1)
         self._user_field.grid(row=5, column=3)
-        self._user_field.insert('insert', 'Username')
+        self._user_field.insert(1.0, 'Username')
+        self._user_field.bind('<FocusIn>', on_entry_click)
         self._submit = Button(text='Submit', command=submit,
                               font=self._font, relief='raised',
                               overrelief='sunken', cursor='hand2',
-                              bg='#F7567C', width=10, height=1, pady=4)
+                              bg='#0BA489', width=8, height=1, pady=0)
+        self._submit.grid(row=6, column=3, sticky='n')
+
+    def record_name(self):
+        def submit():
+            self._record_name = self._record_field.get(1.0, 'end')
+            os.environ['Fluid Exercise'] = self._record_name
+            self._state = 'RECORD'
+            self._root.destroy()
+
+        def on_entry_click(event):
+            if 'Exercise Name' in self._record_field.get(1.0, 'end'):
+                self._record_field.delete(1.0, "end")
+                self._record_field.insert(1.0, '')
+
+        self._record_field = Text(
+            self._root, relief='raised', font=self._entry_font, padx=10,
+            pady=6, width=35, height=1)
+        self._record_field.grid(row=5, column=3)
+        self._record_field.insert(1.0, 'Exercise Name')
+        self._record_field.bind('<FocusIn>', on_entry_click)
+        self._submit = Button(text='Submit', command=submit,
+                              font=self._font, relief='raised',
+                              overrelief='sunken', cursor='hand2',
+                              bg='#0BA489', width=8, height=1, pady=0)
         self._submit.grid(row=6, column=3, sticky='n')
 
     def startmenu(self):
         def start():
-            self._state = 'RECORD'
-            self._root.destroy()
+            self._record.destroy()
+            self._compare.destroy()
+            self.record_name()
 
         def compare():
             self._record.destroy()
@@ -102,27 +138,42 @@ class Gui(object):
 
     def listrecords(self):
         root = self._root
-        menu = Frame(root, width=500, height=500)
-        menu.grid(columnspan=4, padx=100, pady=100)
+        record_frame = Frame(self._root)
+        record_frame.grid(row=4, column=3)
 
-        def addRecord(handle, name, buttons=[]):
+        def cancel():
+            self._state = 'MENU'
+            root.destroy()
 
+        def addRecord(handle, name, count):
             def startcompare():
-                self._state = 'COMPARE' if handle and name else 'MENU'
+                self._state = 'COMPARE'
                 self._recording = handle
                 self._title = name
                 root.destroy()
 
-            b = Frame(menu, width=125, height=125)
-            b.grid(row=len(buttons), sticky=W)
-            buttons.append(b)
-            b = Button(b, text=name or 'Cancel', command=startcompare)
-            b.pack(side=LEFT)
+            name_parts = name.split(';')
+            spacing = '                 '
+            name = (name_parts[0] + spacing + name_parts[1] + spacing +
+                    datetime.fromtimestamp(float(name_parts[2])).strftime(
+                '%m/%d/%Y'))
+            record = Button(record_frame, text=name, command=startcompare,
+                            font=self._record_font, background='white',
+                            relief='flat', cursor='hand2')
+            record.grid(row=count, column=0, sticky='nwes')
 
         records = self.get_records()
-        addRecord(None, None)
+        count = 0
         for record in records:
-            addRecord(*record)
+            addRecord(records[0], record[1], count)
+            count += 1
+        cancel_button = Button(record_frame, text='Cancel', command=cancel,
+                               font=self._entry_font, relief='raised',
+                               overrelief='sunken', cursor='hand2',
+                               bg='#F7567C', width=10, height=1)
+        spacing = Label(record_frame)
+        spacing.grid(row=count + 1, column=0)
+        cancel_button.grid(row=count + 2, column=0)
 
     def get_records(self):
         return list((f, f) for f in os.listdir('./data') if f != '.gitignore')

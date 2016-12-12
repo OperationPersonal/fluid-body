@@ -4,6 +4,8 @@ import pyttsx
 import speech_recognition
 
 import logging
+import threading
+import time
 
 import gameinterface
 
@@ -20,16 +22,29 @@ VOICE_M = VOICE + 'TTS_MS_EN-US_DAVID_11.0'
 class AudioInterface(object):
 
     def __init__(self, interface=None):
-        self._engine = pyttsx.init()
         self._interface = interface
         self._mute = False
-        self._engine.setProperty(
-            'voice', VOICE_F)
+        self._line = ''
+        self._speaker = threading.Thread(
+            target=self.start_audio, name='speaker')
+        self._speaker.start()
+        self.keep_speaking = True
 
-    def speak(self, text):
-        if not self._mute:
-            self._engine.say(text)
-            self._engine.runAndWait()
+    def start_audio(self):
+        engine = pyttsx.init()
+        engine.setProperty(
+            'voice', VOICE_F)
+        logging.info('Started Audio')
+        while self.keep_speaking:
+            if not self._mute:
+                if self._line:
+                    engine.say(self._line)
+                    engine.runAndWait()
+                    self._line = ''
+        logging.info('Stopped Audio')
+
+    def speak(self, line):
+        self._line = line
 
     def mute(self):
         self._mute = not self._mute

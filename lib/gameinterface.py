@@ -64,14 +64,15 @@ class GameInterface(object):
         ).Width, self._kinect.colorFrameDesc().Height), 0, 32)
         self._analysis = analysis.AnalysisStream(
             self._kinect, filename)if filename else None
-        self._status_bar = status.StatusBar(fontsize=24,
-                                            size=(self._screen.get_width(),
-                                                  STATUS_HEIGHT), user=user)
         game.display.set_caption('Fluid Body Analyzer')
         self._callback = callback
         self._bodies = []
         self._pause = False
         self._audio = audio.AudioInterface(self)
+        self._status_bar = status.StatusBar(fontsize=24,
+                                            size=(self._screen.get_width(),
+                                                  STATUS_HEIGHT), user=user,
+                                            audio=self._audio)
         self._speed = 2
         self._clock = game.time.Clock()
 
@@ -84,12 +85,14 @@ class GameInterface(object):
         """Closes the game interface cleanly without
         ripping any connections or anything dangling"""
         self._status_bar.to_lines('Closing')
+        self._kinect.close()
         game.quit()
         self._callback()
         try:
-            self._analysis.close()
-            self._kinect.close()
+            if self._analysis:
+                self._analysis.close()
             self._stop_listening()
+            self._audio.keep_speaking = False
         except:
             pass
 
@@ -146,14 +149,23 @@ class GameInterface(object):
 
     def toggle_state(self):
         if self._state == STATE_RECORD or self._state == STATE_VIEW:
-            self._state = STATE_RECORD if self._state == STATE_VIEW \
-                else STATE_VIEW
+            if self._state == STATE_VIEW:
+                self._state = STATE_RECORD
+            else:
+                self._state = STATE_VIEW
         else:
-            self._state = STATE_COMPARE if self._state == STATE_WAITING \
-                else STATE_WAITING
+            if self._state == STATE_WAITING:
+                self._state = STATE_COMPARE
+                self._status_bar.to_lines('Start Analysis')
+            else:
+                self._state = STATE_WAITING
+                self._status_bar.to_lines('Stopped Analysis')
 
         if self._state == STATE_RECORD:
+            self._status_bar.to_lines('Recording')
             self._kinect.initRecord()
+        else:
+            self._status_bar.to_lines('Stopped Recording')
 
     def event_trigger(self, event):
         if event.type == game.QUIT:
@@ -244,7 +256,8 @@ class GameInterface(object):
                         color_analysis and camera_analysis:
                     color = color_analysis(body)  # x, y
                     lines = list(analysis.color_points_to_bones(color))
-                    self.drawLines(lines, self._surface, GAME_COLORS[1], worst=self._worst)
+                    self.drawLines(lines, self._surface, GAME_COLORS[
+                                   1], worst=self._worst)
 
                     if self._worst:
                         _LOGGER.info('worst {}'.format(self._worst))

@@ -2,7 +2,7 @@ import pygame as game
 import logging
 from datetime import datetime
 
-import audio
+import os
 
 _LOGGER = logging.getLogger('statusbar')
 
@@ -13,15 +13,15 @@ _LOGGER = logging.getLogger('statusbar')
 class StatusBar(object):
 
     def __init__(self, fontname='Futura-Medium', fontsize=24,
-                 size=(500, 40), user='', color='white'):
+                 size=(500, 40), user='', color='white', audio=None):
         self._fontname = fontname
         self._fontsize = fontsize
         self.set_font(fontname, fontsize)
         self._surface = game.Surface(size)
-        self._user = user
+        self._user = os.environ['Fluid Username'].replace('\n', '')
         self._line = ''
         self._color = game.color.THECOLORS['white']
-        self._audio = audio.AudioInterface()
+        self._audio = audio
 
         self._analysis = None
 
